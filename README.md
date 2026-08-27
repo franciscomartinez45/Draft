@@ -4,14 +4,20 @@ A draft-day assistant for someone who knows how fantasy football works but not w
 players are. You mark each player as they come off the board; it tells you who to take next
 and why, in plain English.
 
+Live at **https://franciscomartinez45.github.io/Draft/**
+
 ## The morning of the draft
 
 ```sh
-node fetch-adp.mjs   # refresh ADP (it changes daily — do NOT skip this)
-node build.mjs       # regenerate draft.html
+node fetch-adp.mjs && node build.mjs      # refresh ADP, rebuild index.html
+git commit -am "refresh ADP" && git push  # publish it
 ```
 
-Then open `draft.html` — double-click it, or `open draft.html`. It is a standalone HTML
+ADP changes daily. Skipping the refresh gives you confidently wrong advice, and the failure is
+invisible — the app looks like it is working. GitHub Pages redeploys about a minute after the
+push; hard-refresh on your phone if you still see the old board.
+
+Or open it locally: `open index.html`. It is a standalone HTML
 document: no server, no build step at view time, no platform. Copy it to any device, email it
 to yourself, or drop it on any static host.
 
@@ -42,9 +48,12 @@ embedded, so switching scoring format mid-draft keeps your recorded picks.
 | `engine.test.mjs` | `node --test engine.test.mjs` — 24 tests |
 | `simulate.mjs` | `node simulate.mjs 1000` — adversarial mock drafts |
 | `smoke.mjs` | `node smoke.mjs` — runs the real page code against a DOM shim |
+
+`index.html` has the engine and all 956 player rows pasted inside it. It needs none of the
+other files at runtime — they are only used to rebuild it.
 | `template.html` | Markup, styles, UI glue |
-| `build.mjs` | Inlines engine + data → `draft.html` |
-| `draft.html` | **The deliverable.** Standalone HTML document, no server needed. |
+| `build.mjs` | Inlines engine + data → `index.html` |
+| `index.html` | **The deliverable.** Standalone HTML document, no server needed. |
 
 Zero npm dependencies.
 
