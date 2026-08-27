@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Live fantasy football draft assistant: mark players as they are taken and it tells you who to draft next, and why.">
+<meta name="theme-color" content="#F6F7F9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101419" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="War Room">
+<title>2026 Draft War Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ---------- tokens: light is the base, both dark paths override ---------- */
+:root {
+  --ground:#F6F7F9; --surface:#FFFFFF; --surface-2:#EDEFF3; --raise:#FFFFFF;
+  --line:#D9DDE4; --line-soft:#E7EAEF;
+  --ink:#171B21; --ink-dim:#5A626E; --ink-faint:#8B94A2;
+  --accent:#A2470D; --accent-soft:#FBEDE1; --accent-ink:#FFFFFF;
+  --critical:#AE3229; --critical-soft:#FAE9E7;
+  --safe:#256B55; --safe-soft:#E4F1EC;
+  --qb:#7C51AE; --rb:#1F7F73; --wr:#2F6DB8; --te:#AF4E72; --k:#6B7480; --def:#5F7A38;
+  --shadow:0 1px 2px rgba(16,20,25,.06), 0 4px 14px rgba(16,20,25,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:#101419; --surface:#171C23; --surface-2:#1E242C; --raise:#202832;
+    --line:#2B333E; --line-soft:#232A33;
+    --ink:#E7EBF0; --ink-dim:#98A2B0; --ink-faint:#697384;
+    --accent:#E8843C; --accent-soft:#2C1D11; --accent-ink:#11151A;
+    --critical:#E0594C; --critical-soft:#2A1A18;
+    --safe:#4FB795; --safe-soft:#15241F;
+    --qb:#A87BD1; --rb:#3FB3A2; --wr:#5D9BE0; --te:#D9819D; --k:#8B95A3; --def:#93B45F;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.28);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:#101419; --surface:#171C23; --surface-2:#1E242C; --raise:#202832;
+  --line:#2B333E; --line-soft:#232A33;
+  --ink:#E7EBF0; --ink-dim:#98A2B0; --ink-faint:#697384;
+  --accent:#E8843C; --accent-soft:#2C1D11; --accent-ink:#11151A;
+  --critical:#E0594C; --critical-soft:#2A1A18;
+  --safe:#4FB795; --safe-soft:#15241F;
+  --qb:#A87BD1; --rb:#3FB3A2; --wr:#5D9BE0; --te:#D9819D; --k:#8B95A3; --def:#93B45F;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.28);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:Barlow,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.45; -webkit-text-size-adjust:100%;
+}
+h1,h2,h3{margin:0; font-family:"Barlow Condensed",Barlow,system-ui,sans-serif; font-weight:600; text-wrap:balance}
+button,input,select,textarea{font:inherit; color:inherit}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:3px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace; font-variant-numeric:tabular-nums}
+.eyebrow{
+  font-family:"Barlow Condensed",sans-serif; font-size:12px; font-weight:600;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint);
+}
+
+/* ---------------------------- command bar ---------------------------- */
+.cmd{
+  position:sticky; top:0; z-index:40; background:var(--surface);
+  border-bottom:1px solid var(--line); box-shadow:var(--shadow);
+}
+.cmd-in{max-width:1500px; margin:0 auto; padding:10px 16px; display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+.brand{display:flex; align-items:baseline; gap:9px; margin-right:2px}
+.brand b{font-family:"Barlow Condensed",sans-serif; font-size:20px; font-weight:700; letter-spacing:.01em}
+.brand span{font-size:12px; color:var(--ink-faint)}
+
+.clock{
+  display:flex; align-items:center; gap:8px; padding:5px 11px; border-radius:999px;
+  border:1px solid var(--line); background:var(--surface-2); white-space:nowrap;
+}
+.clock.live{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
+.clock b{font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.02em}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--ink-faint)}
+.clock.live .dot{background:var(--accent); animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.clock.live .dot{animation:none}}
+
+.search{position:relative; flex:1 1 300px; min-width:220px}
+.search input{
+  width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--line);
+  background:var(--ground); font-size:15px;
+}
+.search input::placeholder{color:var(--ink-faint)}
+.hint{margin-top:5px; font-size:11.5px; color:var(--ink-faint)}
+.hint kbd{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; padding:1px 5px;
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; background:var(--surface-2);
+}
+.tools{display:flex; gap:7px; margin-left:auto}
+.btn{
+  padding:7px 12px; border-radius:7px; border:1px solid var(--line);
+  background:var(--surface-2); cursor:pointer; font-size:13.5px; font-weight:500;
+}
+.btn:hover{border-color:var(--ink-faint)}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+.btn-key{color:var(--ink-faint); font-size:11px; margin-left:5px}
+
+/* results dropdown */
+.results{
+  position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
+  background:var(--raise); border:1px solid var(--line); border-radius:10px;
+  box-shadow:var(--shadow); overflow:hidden; max-height:60vh; overflow-y:auto;
+}
+.results.ambig{border-color:var(--accent); border-width:2px}
+.ambig-note{
+  padding:8px 12px; background:var(--accent-soft); color:var(--accent);
+  font-size:12.5px; font-weight:600; border-bottom:1px solid var(--line);
+}
+.res{
+  display:flex; align-items:center; gap:10px; width:100%; padding:9px 12px;
+  border:0; background:none; cursor:pointer; text-align:left; border-bottom:1px solid var(--line-soft);
+}
+.res:last-child{border-bottom:0}
+.res[aria-selected="true"]{background:var(--surface-2)}
+.res-i{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-faint);
+  width:18px; height:18px; display:grid; place-items:center;
+  border:1px solid var(--line); border-radius:4px; flex:none;
+}
+.res-n{font-weight:600; flex:1}
+.res-m{font-size:12px; color:var(--ink-dim)}
+.empty{padding:12px; color:var(--ink-dim); font-size:13.5px}
+
+/* ------------------------------- layout ------------------------------- */
+.wrap{max-width:1500px; margin:0 auto; padding:18px 16px 60px}
+.banner{
+  display:flex; gap:9px; align-items:flex-start; padding:10px 13px; margin-bottom:16px;
+  border-radius:9px; border:1px solid var(--line); background:var(--surface);
+  font-size:13.5px; color:var(--ink-dim);
+}
+.banner.warn{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
+.banner b{color:inherit}
+
+section{margin-bottom:26px}
+.sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:11px}
+.sec-head h2{font-size:19px; letter-spacing:.01em}
+.sec-head .eyebrow{margin-left:auto}
+
+/* ------------------------------ the call ------------------------------ */
+.call{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+.pick{
+  position:relative; background:var(--surface); border:1px solid var(--line);
+  border-radius:11px; padding:14px 15px 13px 18px; box-shadow:var(--shadow); overflow:hidden;
+}
+.pick::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--ink-faint)}
+.pick.u-now::before{background:var(--critical)}
+.pick.u-soon::before{background:var(--accent)}
+.pick.u-wait::before{background:var(--safe)}
+.pick-top{display:flex; align-items:center; gap:8px; margin-bottom:3px}
+.rank{
+  font-family:"Barlow Condensed",sans-serif; font-size:12px; font-weight:700;
+  color:var(--ink-faint); letter-spacing:.1em;
+}
+.tag{
+  margin-left:auto; font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  padding:2px 7px; border-radius:4px;
+}
+.tag.u-now{background:var(--critical-soft); color:var(--critical)}
+.tag.u-soon{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent)}
+.tag.u-wait{background:var(--safe-soft); color:var(--safe)}
+.pick h3{font-size:25px; line-height:1.1; letter-spacing:.005em}
+.pick-sub{font-size:12.5px; color:var(--ink-dim); margin:3px 0 9px; display:flex; gap:7px; align-items:center}
+.why{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px}
+.why li{font-size:13px; color:var(--ink-dim); padding-left:13px; position:relative; line-height:1.35}
+.why li::before{content:""; position:absolute; left:2px; top:.55em; width:4px; height:4px; border-radius:50%; background:var(--ink-faint)}
+.pick-act{margin-top:11px; display:flex; gap:7px}
+.pick-act .btn{flex:1; text-align:center}
+.take{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600}
+.take:hover{filter:brightness(1.08)}
+
+/* ------------------------------- board ------------------------------- */
+.cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(196px,1fr)); gap:12px; align-items:start}
+.col{background:var(--surface); border:1px solid var(--line); border-radius:11px; overflow:hidden}
+.col-h{
+  display:flex; align-items:center; gap:7px; padding:9px 11px;
+  border-bottom:1px solid var(--line); background:var(--surface-2);
+}
+.chip{
+  font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:12px; letter-spacing:.06em;
+  color:var(--pc); border:1px solid currentColor; border-radius:4px; padding:1px 6px;
+}
+.col-h .n{margin-left:auto; font-size:11.5px; color:var(--ink-faint)}
+.col-h .run{
+  font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--critical); background:var(--critical-soft); padding:2px 6px; border-radius:4px;
+}
+.plist{list-style:none; margin:0; padding:0; max-height:min(52vh,460px); overflow-y:auto}
+.tierline{
+  display:flex; align-items:center; gap:8px; padding:6px 11px 5px;
+  background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line-soft);
+  position:sticky; top:0;
+}
+.tierline:first-child{border-top:0}
+.tierline .t{font-family:"Barlow Condensed",sans-serif; font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-dim)}
+.tierline .s{margin-left:auto; font-size:10.5px; color:var(--ink-faint)}
+.tierline.cliff{background:var(--critical-soft)}
+.tierline.cliff .t,.tierline.cliff .s{color:var(--critical)}
+.row{
+  display:grid; grid-template-columns:1fr auto; gap:2px 8px; align-items:center;
+  padding:6px 11px; border-bottom:1px solid var(--line-soft); cursor:pointer;
+}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--surface-2)}
+.row .nm{font-weight:500; font-size:13.5px; line-height:1.2}
+.row .adp{font-size:11.5px; color:var(--ink-faint)}
+.row .mt{grid-column:1/-1; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-faint)}
+.meter{flex:1; height:3px; border-radius:2px; background:var(--line); overflow:hidden; max-width:64px}
+.meter i{display:block; height:100%; width:calc(var(--v)*100%); background:var(--mc)}
+
+/* -------------------------------- rail -------------------------------- */
+.rail{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:13px 14px}
+.card h3{font-size:15px; margin-bottom:9px; letter-spacing:.02em}
+.slots{display:flex; flex-wrap:wrap; gap:5px}
+.slot{
+  font-size:11.5px; padding:3px 8px; border-radius:5px; border:1px dashed var(--line);
+  color:var(--ink-faint);
+}
+.slot.filled{border-style:solid; border-color:transparent; background:var(--surface-2); color:var(--ink)}
+.slot b{font-family:"Barlow Condensed",sans-serif; letter-spacing:.05em}
+.ticker{list-style:none; margin:0; padding:0; max-height:190px; overflow-y:auto; font-size:12.5px}
+.ticker li{display:flex; gap:8px; align-items:center; padding:4px 0; border-bottom:1px solid var(--line-soft)}
+.ticker li:last-child{border-bottom:0}
+.ticker .p{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-faint); width:26px}
+.ticker .who{margin-left:auto; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint)}
+.ticker li.mine .who{color:var(--accent); font-weight:700}
+.pc{font-family:"Barlow Condensed",sans-serif; font-size:10px; font-weight:700; letter-spacing:.05em; color:var(--pc); border:1px solid currentColor; border-radius:3px; padding:0 4px}
+.fields{display:grid; grid-template-columns:1fr 1fr; gap:9px}
+.field{display:flex; flex-direction:column; gap:3px}
+.field label{font-size:11px; color:var(--ink-faint); letter-spacing:.04em}
+.field select,.field input{padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--ground)}
+.field.wide{grid-column:1/-1}
+textarea{
+  width:100%; min-height:64px; padding:8px; border-radius:7px; border:1px solid var(--line);
+  background:var(--ground); font-family:"IBM Plex Mono",monospace; font-size:12px; resize:vertical;
+}
+.note{font-size:11.5px; color:var(--ink-faint); margin-top:7px}
+.note.bad{color:var(--critical)}
+
+@media (max-width:900px){
+  .call{grid-template-columns:1fr}
+  .cmd-in{padding:9px 12px; gap:9px}
+  .brand span{display:none}
+  .wrap{padding:14px 12px 50px}
+  .plist{max-height:none}
+}
+</style>
+</head>
+<body>
+<header class="cmd">
+  <div class="cmd-in">
+    <div class="brand"><b>WAR ROOM</b><span>2026</span></div>
+    <div class="clock" id="clock"><span class="dot"></span><b id="clockTxt">Pick 1</b></div>
+    <div class="search">
+      <input id="q" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="Type a player who was just drafted…" aria-label="Mark a player drafted">
+      <div id="res" hidden></div>
+      <div class="hint">
+        <kbd>Enter</kbd> someone else took him · <kbd>Shift</kbd>+<kbd>Enter</kbd> you took him · <kbd>1</kbd>–<kbd>9</kbd> choose
+      </div>
+    </div>
+    <div class="tools">
+      <button class="btn" id="undo">Undo<span class="btn-key">⌘Z</span></button>
+      <button class="btn" id="theme" title="Switch between light, dark, and your system setting" aria-label="Colour theme">Auto</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="banners"></div>
+
+  <section>
+    <div class="sec-head"><h2 id="callTitle">Take one of these</h2><span class="eyebrow" id="callSub"></span></div>
+    <div class="call" id="call"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>The board</h2><span class="eyebrow">available · by position · tier breaks marked</span></div>
+    <div class="cols" id="cols"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Your team &amp; settings</h2></div>
+    <div class="rail">
+      <div class="card">
+        <h3>Your roster</h3>
+        <div class="slots" id="slots"></div>
+        <div class="note" id="rosterNote"></div>
+      </div>
+      <div class="card">
+        <h3>Recent picks</h3>
+        <ul class="ticker" id="ticker"></ul>
+      </div>
+      <div class="card">
+        <h3>League</h3>
+        <div class="fields">
+          <div class="field"><label for="fmt">Scoring</label><select id="fmt"></select></div>
+          <div class="field"><label for="size">Teams</label><input id="size" type="number" min="4" max="20" step="1"></div>
+          <div class="field"><label for="slot">Your slot</label><input id="slot" type="number" min="1" step="1"></div>
+          <div class="field"><label for="rounds">Rounds</label><input id="rounds" type="number" min="6" max="25" step="1"></div>
+          <div class="field wide"><label for="lineupStr">Starting lineup</label><input id="lineupStr" type="text" spellcheck="false"></div>
+        </div>
+        <div class="note" id="lineupNote">Format: <span class="mono">QB1 RB2 WR2 TE1 FLEX1 K1 DEF1</span>. Add <span class="mono">SUPERFLEX1</span> for 2QB leagues.</div>
+      </div>
+      <div class="card">
+        <h3>Bulk entry &amp; backup</h3>
+        <textarea id="bulk" placeholder="Paste names taken while you were away, one per line or comma-separated…"></textarea>
+        <div class="pick-act" style="margin-top:8px">
+          <button class="btn" id="bulkGo">Mark all drafted</button>
+          <button class="btn" id="exportBtn">Export</button>
+          <button class="btn" id="resetBtn">Reset</button>
+        </div>
+        <div class="note" id="bulkNote"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+/*__ENGINE__*/
+const ADP = /*__DATA__*/;
+
+/* ------------------------------- state ------------------------------- */
+const KEY = 'draft-war-room-2026';
+const DEF_SETTINGS = { format:'ppr', leagueSize:12, slot:1, rounds:16, lineup:{...DEFAULT_LINEUP} };
+let S = { ...DEF_SETTINGS, log:[] };   // log: [{id, mine}] -- everything derives from this
+
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch { /* private mode / blocked storage: the app still works, it just won't survive reload */ }
+}
+function load(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return;
+    const v = JSON.parse(raw);
+    if (v && Array.isArray(v.log)) S = { ...DEF_SETTINGS, ...v, lineup:{ ...DEFAULT_LINEUP, ...(v.lineup||{}) } };
+  } catch { /* corrupt or unreadable -- start clean rather than crash */ }
+}
+
+let POOL = [], INDEX = null;
+function rebuild(){
+  POOL = computeTiers(ADP.formats[S.format].players.map(p => ({ ...p })));
+  INDEX = buildIndex(POOL);
+}
+
+const byId = id => POOL.find(p => p.id === id);
+function derive(){
+  const drafted = new Set(), order = [], roster = {};
+  for (const e of S.log) {
+    const p = byId(e.id);
+    drafted.add(e.id);
+    if (p) { order.push(p); if (e.mine) roster[p.pos] = (roster[p.pos]||0) + 1; }
+  }
+  return { drafted, order, roster };
+}
+const stateFor = d => ({
+  players:POOL, drafted:d.drafted, draftedOrder:d.order, roster:d.roster,
+  lineup:S.lineup, leagueSize:S.leagueSize, slot:S.slot, rounds:S.rounds,
+});
+
+/* ------------------------------ actions ------------------------------ */
+function take(id, mine){
+  if (S.log.some(e => e.id === id)) return;
+  S.log.push({ id, mine:!!mine });
+  save(); render();
+}
+function undo(){ if (S.log.length){ S.log.pop(); save(); render(); } }
+
+/* ------------------------------ helpers ------------------------------ */
+const BASE_POS_ORDER = ['RB','WR','TE','QB','K','DEF'];
+const posOrder = () => (S.lineup.SUPERFLEX ? ['QB','RB','WR','TE','K','DEF'] : BASE_POS_ORDER);
+const posVar = pos => `var(--${pos.toLowerCase()})`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const URGENCY_LABEL = { now:'gone by your turn', soon:'might not last', wait:'you can wait' };
+
+/* ------------------------------- render ------------------------------- */
+function render(){
+  const d = derive();
+  const st = stateFor(d);
+  const ev = recommend(st, 3);
+
+  // ---- clock
+  const clock = document.getElementById('clock');
+  const onClock = ev.onTheClock;
+  clock.classList.toggle('live', onClock);
+  document.getElementById('clockTxt').textContent = onClock
+    ? `You're on the clock — pick ${ev.currentPick}`
+    : `Pick ${ev.currentPick} · you're up at ${ev.nextPick ?? '—'}`;
+
+  // ---- banners
+  const b = [];
+  const needed = S.leagueSize * S.rounds;
+  if (needed > POOL.length) {
+    b.push(`<div class="banner warn"><b>Board runs out.</b> This draft needs ${needed} picks but the ADP board only lists ${POOL.length} players — the last ${needed - POOL.length} picks won't have suggestions.</div>`);
+  }
+  const hotRun = Object.entries(ev.recentRun).filter(([p,n]) => n >= 4 && !['K','DEF'].includes(p));
+  if (hotRun.length) {
+    b.push(`<div class="banner warn"><b>${hotRun[0][0]} run in progress.</b> ${hotRun[0][1]} of the last 10 picks. Players at that position are going faster than their draft position suggests.</div>`);
+  }
+  if (!S.log.length) {
+    b.push(`<div class="banner">Type the name of every player taken by <b>anyone else</b> and press <b>Enter</b>. When you draft someone, press <b>Shift+Enter</b> instead so it fills a roster slot.</div>`);
+  }
+  document.getElementById('banners').innerHTML = b.join('');
+
+  // ---- the call
+  document.getElementById('callTitle').textContent = onClock ? "You're up — take one of these" : 'If your pick came now';
+  document.getElementById('callSub').textContent = ev.gap > 0
+    ? `${ev.gap} picks until your turn` : 'last pick of the draft';
+
+  document.getElementById('call').innerHTML = ev.top.map((row, i) => {
+    const p = row.player, u = urgencyBand(row.pAvail, ev.gap);
+    return `<article class="pick u-${u}">
+      <div class="pick-top">
+        <span class="rank">${i === 0 ? 'BEST PICK' : '#' + (i+1)}</span>
+        <span class="tag u-${u}">${URGENCY_LABEL[u]}</span>
+      </div>
+      <h3>${esc(p.name)}</h3>
+      <div class="pick-sub">
+        <span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span>
+        <span>${esc(p.team || '')}</span>
+        <span class="mono">ADP ${p.adp.toFixed(1)}</span>
+        ${p.bye ? `<span>bye ${p.bye}</span>` : ''}
+      </div>
+      <ul class="why">${row.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+      <div class="pick-act">
+        <button class="btn take" data-take="${p.id}">I drafted him</button>
+        <button class="btn" data-gone="${p.id}">Someone else did</button>
+      </div>
+    </article>`;
+  }).join('') || `<div class="banner">No players left on the board.</div>`;
+
+  // ---- board
+  const scoredBy = new Map(ev.scored.map(r => [r.player.id, r]));
+  document.getElementById('cols').innerHTML = posOrder().map(pos => {
+    const list = ev.available.filter(p => p.pos === pos);
+    if (!list.length) return '';
+    const run = ev.recentRun[pos] || 0;
+    let html = '', tier = null;
+    for (const p of list.slice(0, 40)) {
+      if (p.tier !== tier) {
+        tier = p.tier;
+        const mates = list.filter(q => q.tier === tier);
+        const surv = mates.reduce((s,q) => s + (ev.avail.get(q.id)||0), 0);
+        const cliff = ev.gap > 0 && surv < 1;
+        html += `<li class="tierline${cliff ? ' cliff' : ''}">
+          <span class="t">Tier ${tier}</span>
+          <span class="s">${cliff ? 'empties before your turn' : `${surv.toFixed(1)} of ${mates.length} should last`}</span>
+        </li>`;
+      }
+      const r = scoredBy.get(p.id);
+      const a = ev.avail.get(p.id) ?? 1;
+      const mc = a <= 0.2 ? 'var(--critical)' : a <= 0.55 ? 'var(--accent)' : 'var(--safe)';
+      html += `<li class="row" data-gone="${p.id}" title="Click: someone else drafted him. Shift-click: you drafted him.">
+        <span class="nm">${esc(p.name)}</span>
+        <span class="adp mono">${p.adp.toFixed(1)}</span>
+        <span class="mt">
+          <span>${esc(p.team||'')}${p.bye ? ' · bye '+p.bye : ''}</span>
+          <span class="meter" style="--v:${a.toFixed(3)};--mc:${mc}" title="${Math.round(a*100)}% likely to last until your next pick"><i></i></span>
+        </span>
+      </li>`;
+    }
+    return `<div class="col">
+      <div class="col-h">
+        <span class="chip" style="--pc:${posVar(pos)}">${pos}</span>
+        ${run >= 4 ? `<span class="run">run ${run}/10</span>` : ''}
+        <span class="n">${list.length} left</span>
+      </div>
+      <ul class="plist">${html}</ul>
+    </div>`;
+  }).join('');
+
+  // ---- roster
+  const slots = [];
+  for (const [pos, n] of Object.entries(S.lineup)) {
+    for (let i = 0; i < n; i++) slots.push(pos);
+  }
+  const counts = { ...d.roster };
+  document.getElementById('slots').innerHTML = slots.map(pos => {
+    let filled = false;
+    if (pos === 'FLEX' || pos === 'SUPERFLEX') {
+      const elig = pos === 'FLEX' ? FLEX_POS : ['QB'];
+      const hit = elig.find(q => (counts[q]||0) > 0);
+      if (hit) { counts[hit]--; filled = true; }
+    } else if ((counts[pos]||0) > 0) { counts[pos]--; filled = true; }
+    return `<span class="slot${filled ? ' filled' : ''}"><b>${pos}</b></span>`;
+  }).join('');
+  const bench = S.log.filter(e => e.mine).length - slots.length;
+  document.getElementById('rosterNote').textContent =
+    `${S.log.filter(e => e.mine).length} drafted${bench > 0 ? ` · ${bench} on the bench` : ''} · ${ev.roundsLeft} of your picks left`;
+
+  // ---- ticker
+  document.getElementById('ticker').innerHTML = S.log.slice(-25).reverse().map((e, i) => {
+    const p = byId(e.id);
+    const n = S.log.length - i;
+    return `<li class="${e.mine ? 'mine' : ''}">
+      <span class="p">${n}</span>
+      ${p ? `<span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span><span>${esc(p.name)}</span>` : `<span>unknown player</span>`}
+      <span class="who">${e.mine ? 'you' : ''}</span>
+    </li>`;
+  }).join('') || `<li style="color:var(--ink-faint)">No picks recorded yet.</li>`;
+
+  document.getElementById('undo').disabled = !S.log.length;
+}
+
+/* ------------------------------- search ------------------------------- */
+const qEl = document.getElementById('q'), resEl = document.getElementById('res');
+let candidates = [], sel = -1, ambiguous = false;
+
+function livePool(){ const d = derive(); return POOL.filter(p => !d.drafted.has(p.id)); }
+
+function showResults(){
+  if (!candidates.length) {
+    resEl.hidden = !qEl.value.trim();
+    resEl.className = 'results';
+    resEl.innerHTML = qEl.value.trim() ? `<div class="empty">No match for “${esc(qEl.value.trim())}”. Check the spelling, or try a last name.</div>` : '';
+    return;
+  }
+  resEl.hidden = false;
+  resEl.className = 'results' + (ambiguous ? ' ambig' : '');
+  resEl.innerHTML =
+    (ambiguous ? `<div class="ambig-note">${candidates.length} players match — pick the right one (press 1–${Math.min(9,candidates.length)})</div>` : '') +
+    candidates.map((p, i) => `<button class="res" data-i="${i}" aria-selected="${i === sel}">
+      <span class="res-i">${i+1}</span>
+      <span class="res-n">${esc(p.name)}</span>
+      <span class="res-m"><span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span> ${esc(p.team||'')} · ADP ${p.adp.toFixed(1)}</span>
+    </button>`).join('');
+}
+
+function updateSearch(){
+  const q = qEl.value.trim();
+  if (!q) { candidates = []; sel = -1; ambiguous = false; showResults(); return; }
+  const r = matchName(q, INDEX, { pool: livePool(), limit: 9 });
+  candidates = r.matches;
+  // Ambiguous input must be confirmed explicitly -- crossing out the wrong
+  // player and not noticing is the worst thing this app could do.
+  ambiguous = r.status === 'many';
+  sel = ambiguous ? -1 : (candidates.length ? 0 : -1);
+  showResults();
+}
+
+function commit(i, mine){
+  const p = candidates[i];
+  if (!p) return;
+  take(p.id, mine);
+  qEl.value = ''; candidates = []; sel = -1; ambiguous = false;
+  showResults(); qEl.focus();
+}
+
+qEl.addEventListener('input', updateSearch);
+qEl.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!candidates.length) return;
+    sel = e.key === 'ArrowDown'
+      ? (sel + 1) % candidates.length
+      : (sel - 1 + candidates.length) % candidates.length;
+    showResults();
+  } else if (/^[1-9]$/.test(e.key) && candidates.length > 1) {
+    const i = Number(e.key) - 1;
+    if (i < candidates.length) { e.preventDefault(); commit(i, e.shiftKey); }
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (sel >= 0) commit(sel, e.shiftKey);
+    // ambiguous with nothing selected: do nothing, the list is already up
+  } else if (e.key === 'Escape') {
+    qEl.value = ''; updateSearch();
+  }
+});
+resEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-i]');
+  if (btn) commit(Number(btn.dataset.i), e.shiftKey);
+});
+
+/* ------------------------------ interactions ------------------------------ */
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-take]'), g = e.target.closest('[data-gone]');
+  if (t) take(t.dataset.take, true);
+  else if (g) take(g.dataset.gone, e.shiftKey);
+});
+document.getElementById('undo').addEventListener('click', undo);
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+  else if (e.key === '/' && document.activeElement !== qEl) { e.preventDefault(); qEl.focus(); }
+});
+
+/* ------------------------------- settings ------------------------------- */
+const fmtEl = document.getElementById('fmt');
+fmtEl.innerHTML = Object.entries(ADP.formats)
+  .map(([k, v]) => `<option value="${k}">${esc(v.label)} · ${v.totalDrafts.toLocaleString()} mocks</option>`).join('');
+
+const lineupToStr = L => Object.entries(L).filter(([,n]) => n > 0).map(([p,n]) => p + n).join(' ');
+function strToLineup(s){
+  const out = {};
+  for (const m of String(s).toUpperCase().matchAll(/([A-Z]+)\s*(\d+)/g)) out[m[1]] = Number(m[2]);
+  return Object.keys(out).length ? out : { ...DEFAULT_LINEUP };
+}
+function syncControls(){
+  fmtEl.value = S.format;
+  document.getElementById('size').value = S.leagueSize;
+  document.getElementById('slot').value = S.slot;
+  document.getElementById('slot').max = S.leagueSize;
+  document.getElementById('rounds').value = S.rounds;
+  document.getElementById('lineupStr').value = lineupToStr(S.lineup);
+}
+function onSetting(){
+  S.format = fmtEl.value;
+  S.leagueSize = Math.max(4, Math.min(20, Number(document.getElementById('size').value) || 12));
+  S.slot = Math.max(1, Math.min(S.leagueSize, Number(document.getElementById('slot').value) || 1));
+  S.rounds = Math.max(6, Math.min(25, Number(document.getElementById('rounds').value) || 16));
+  S.lineup = strToLineup(document.getElementById('lineupStr').value);
+  rebuild(); save(); syncControls(); render();
+}
+for (const id of ['fmt','size','slot','rounds','lineupStr']) {
+  document.getElementById(id).addEventListener('change', onSetting);
+}
+
+/* --------------------------- bulk / export / reset --------------------------- */
+document.getElementById('bulkGo').addEventListener('click', () => {
+  const names = document.getElementById('bulk').value.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+  const unresolved = [], ambig = [];
+  for (const n of names) {
+    const r = matchName(n, INDEX, { pool: livePool(), limit: 5 });
+    if (r.status === 'one') S.log.push({ id: r.matches[0].id, mine: false });
+    else if (r.status === 'many') ambig.push(n);
+    else unresolved.push(n);
+  }
+  save(); render();
+  const note = document.getElementById('bulkNote');
+  const done = names.length - unresolved.length - ambig.length;
+  note.className = 'note' + (unresolved.length || ambig.length ? ' bad' : '');
+  note.textContent = `Marked ${done} of ${names.length}.` +
+    (ambig.length ? ` Ambiguous (enter these one at a time): ${ambig.join(', ')}.` : '') +
+    (unresolved.length ? ` No match: ${unresolved.join(', ')}.` : '');
+  document.getElementById('bulk').value = [...ambig, ...unresolved].join('\n');
+});
+document.getElementById('exportBtn').addEventListener('click', () => {
+  document.getElementById('bulk').value = JSON.stringify(S);
+  document.getElementById('bulkNote').className = 'note';
+  document.getElementById('bulkNote').textContent =
+    'Draft state copied into the box above — save it somewhere. Paste it back and press Export again to restore.';
+});
+document.getElementById('bulk').addEventListener('paste', () => {
+  setTimeout(() => {
+    const v = document.getElementById('bulk').value.trim();
+    if (!v.startsWith('{')) return;
+    try {
+      const parsed = JSON.parse(v);
+      if (!Array.isArray(parsed.log)) return;
+      S = { ...DEF_SETTINGS, ...parsed, lineup:{ ...DEFAULT_LINEUP, ...(parsed.lineup||{}) } };
+      rebuild(); save(); syncControls(); render();
+      document.getElementById('bulk').value = '';
+      document.getElementById('bulkNote').textContent = `Restored ${S.log.length} picks.`;
+    } catch { /* not a backup blob, treat as names */ }
+  }, 0);
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (S.log.length && !confirm(`Clear all ${S.log.length} recorded picks? This cannot be undone.`)) return;
+  S.log = []; save(); render();
+});
+
+/* ------------------------------- theme -------------------------------- */
+/* Standalone there is no host UI setting light/dark, so the page owns it.
+   "auto" removes the attribute and lets prefers-color-scheme decide. */
+const THEME_KEY = 'draft-war-room-theme';
+const THEMES = ['auto', 'light', 'dark'];
+const THEME_LABEL = { auto: 'Auto', light: 'Light', dark: 'Dark' };
+let theme = 'auto';
+function applyTheme(t){
+  theme = THEMES.includes(t) ? t : 'auto';
+  const root = document.documentElement;
+  if (theme === 'auto') root.removeAttribute('data-theme');
+  else root.setAttribute('data-theme', theme);
+  document.getElementById('theme').textContent = THEME_LABEL[theme];
+  try { localStorage.setItem(THEME_KEY, theme); } catch { /* storage blocked */ }
+}
+document.getElementById('theme').addEventListener('click', () => {
+  applyTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]);
+});
+
+/* -------------------------------- boot -------------------------------- */
+let savedTheme = 'auto';
+try { savedTheme = localStorage.getItem(THEME_KEY) || 'auto'; } catch { /* storage blocked */ }
+applyTheme(savedTheme);
+
+load();
+rebuild();
+syncControls();
+render();
+qEl.focus();
+</script>
+</body>
+</html>
