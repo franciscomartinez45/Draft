@@ -371,7 +371,84 @@ export function blendWeight(dev) {
 
 // ------------------------------------------------------------- value & need
 
-/** Convex decay in ADP. Only relative gaps matter. */
+/**
+ * Where replacement level sits at each position: the index of the first player
+ * who would NOT be starting somewhere in the league.
+ *
+ * Flex slots are allocated greedily to whichever position offers the best
+ * remaining body, rather than by a fixed ratio -- a fixed split misplaces
+ * replacement level exactly when one position is unusually deep, which is the
+ * case the whole idea exists to handle.
+ */
+export function replacementRanks(players, lineup = DEFAULT_LINEUP, leagueSize = 12) {
+  const byPos = {};
+  for (const p of players) (byPos[p.pos] ||= []).push(p);
+  for (const k of Object.keys(byPos)) byPos[k].sort((a, b) => (b.pts ?? 0) - (a.pts ?? 0));
+
+  const count = {};
+  for (const pos of Object.keys(byPos)) count[pos] = 0;
+  for (const [pos, n] of Object.entries(lineup)) {
+    if (pos === 'FLEX' || pos === 'SUPERFLEX') continue;
+    count[pos] = leagueSize * n;
+  }
+  const alloc = (slots, eligible) => {
+    for (let i = 0; i < slots; i++) {
+      let best = null, bestPts = -Infinity;
+      for (const pos of eligible) {
+        const nxt = byPos[pos]?.[count[pos] ?? 0];
+        const pts = nxt?.pts ?? -Infinity;
+        if (pts > bestPts) { bestPts = pts; best = pos; }
+      }
+      if (best === null) break;
+      count[best]++;
+    }
+  };
+  alloc(leagueSize * (lineup.FLEX || 0), FLEX_POS);
+  alloc(leagueSize * (lineup.SUPERFLEX || 0), ['QB', ...FLEX_POS]);
+  return count;
+}
+
+/**
+ * Points over replacement, written onto each player as `vor`.
+ *
+ * Raw projected points cannot be compared across positions -- 300 points from a
+ * QB is not 300 from a RB, because the 12th QB is nearly as good as the 5th
+ * while the 30th RB is a cliff. Subtracting replacement level is what makes the
+ * comparison honest. WITHIN a position it changes nothing: replacement is a
+ * constant there, so the order is still simply "most projected points first".
+ *
+ * No-op when no projections are loaded, so ADP-only boards still work.
+ */
+export function computeValues(players, lineup = DEFAULT_LINEUP, leagueSize = 12) {
+  if (!players.some((p) => Number.isFinite(p.pts))) return players;
+  const byPos = {};
+  for (const p of players) (byPos[p.pos] ||= []).push(p);
+  const ranks = replacementRanks(players, lineup, leagueSize);
+  for (const [pos, list] of Object.entries(byPos)) {
+    const sorted = [...list].sort((a, b) => (b.pts ?? 0) - (a.pts ?? 0));
+    const i = Math.max(0, Math.min(ranks[pos] ?? sorted.length - 1, sorted.length - 1));
+    const repl = sorted[i]?.pts ?? 0;
+    for (const p of list) p.vor = (p.pts ?? 0) - repl;
+  }
+  return players;
+}
+
+/**
+ * What a player is worth to the score. Points over replacement when projections
+ * are loaded; the ADP curve when they are not.
+ *
+ * Clamped at zero. Below replacement the exact size of the deficit is not
+ * meaningful, and a negative value would INVERT the K/DEF suppression, which is
+ * a multiplier -- multiplying a negative by 0.005 ranks a kicker above a real
+ * player. Order within the sub-replacement tail is restored by the points
+ * tiebreak in evaluate().
+ */
+export function playerValue(p) {
+  if (Number.isFinite(p.vor)) return Math.max(0, p.vor);
+  return adpValue(p.adp);
+}
+
+/** Convex decay in ADP. The fallback scale when no projections are loaded. */
 export function adpValue(adp) {
   return 100 / (1 + Math.pow(Math.max(adp, 0.5) / 18, 0.85));
 }
@@ -437,7 +514,7 @@ export function expectedBestNext(list, avail) {
   let ev = 0;
   for (const p of list) {
     const a = avail.get(p.id) ?? 0;
-    ev += adpValue(p.adp) * a * carry;
+    ev += playerValue(p) * a * carry;
     carry *= 1 - a;
     if (carry < 1e-4) break;
   }
@@ -511,7 +588,7 @@ export function evaluate(state) {
 
   const scored = available.map((p) => {
     const info = posInfo.get(p.pos);
-    const v = adpValue(p.adp);
+    const v = playerValue(p);
     const waitLoss = Math.max(0, v - info.evNext);        // cost of waiting
     const score = info.need * (v + waitLoss);
 
@@ -529,7 +606,9 @@ export function evaluate(state) {
     };
   });
 
-  scored.sort((a, b) => b.score - a.score);
+  // Below replacement every value clamps to 0, so fall back to raw projected
+  // points to keep the deep tail in a meaningful order rather than arbitrary.
+  scored.sort((a, b) => b.score - a.score || (b.player.pts ?? 0) - (a.player.pts ?? 0));
   return {
     scored, available, avail, posInfo, currentPick, nextPick, horizon, gap,
     onTheClock, deviation: dev, posDivergence: posDiv, blendW: w, roundsLeft, recentRun: runs,

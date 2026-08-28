@@ -13,7 +13,11 @@ name: Refresh ADP
 
 on:
   schedule:
-    - cron: '0 11 * * *'    # 11:00 UTC daily = 07:00 ET / 04:00 PT
+    # GitHub cron is always UTC and has no daylight-saving handling, so this is
+    # pinned to Pacific DAYLIGHT time -- which is what draft season runs on.
+    # 13:00 UTC = 06:00 PDT (Mar-Nov, incl. every draft) = 09:00 EDT.
+    # It drifts to 05:00 PST in winter, which does not matter for a draft tool.
+    - cron: '0 13 * * *'
   workflow_dispatch:         # and on demand, from the Actions tab
 
 permissions:
@@ -41,6 +45,12 @@ jobs:
       - name: Fetch ADP
         run: node fetch-adp.mjs
 
+      # Projected points are what the board ranks on; ADP only decides who is
+      # still available. This fails if under 95% of the board joins, rather than
+      # publishing a board where most players look worthless.
+      - name: Fetch projections
+        run: node fetch-projections.mjs
+
       - name: Rebuild index.html
         run: node build.mjs
 
@@ -55,13 +65,13 @@ jobs:
         run: |
           # adp-data.json carries a fetchedAt timestamp, so a successful refresh
           # normally always differs. The guard is for the pathological no-op.
-          if git diff --quiet -- adp-data.json index.html; then
+          if git diff --quiet -- adp-data.json projections.json index.html; then
             echo "Board unchanged - nothing to publish."
             exit 0
           fi
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add adp-data.json index.html
+          git add adp-data.json projections.json index.html
           git commit -m "refresh ADP ($(date -u +%Y-%m-%d))"
           git push
           echo "Published. GitHub Pages redeploys shortly."

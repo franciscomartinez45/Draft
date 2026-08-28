@@ -339,6 +339,90 @@ test('the urgency stripe and the reason text can never contradict each other', (
   assert.equal(E.urgencyBand(0.99, 10), 'wait');
 });
 
+// ------------------------------------------------- projections / value
+// A board carrying projected points, so these exercise the VOR path rather than
+// the ADP fallback the fixtures above use.
+const PROJ = JSON.parse(readFileSync('./projections.json', 'utf8'));
+const withPts = () => {
+  const pool = E.computeTiers(DATA.formats.ppr.players.map((p) => ({
+    ...p, pts: PROJ.points[p.id]?.ppr,
+  })));
+  E.computeValues(pool, E.DEFAULT_LINEUP, 12);
+  return pool;
+};
+
+test('replacement level tracks the lineup, not a fixed ratio', () => {
+  const pool = withPts();
+  const base = E.replacementRanks(pool, E.DEFAULT_LINEUP, 12);
+  // QB1 TE1 in a 12-team league -> the 12th is the first non-starter
+  assert.equal(base.QB, 12);
+  assert.equal(base.TE, 12);
+  // RB2 WR2 gives 24 apiece before flex; flex only ever pushes them deeper
+  assert.ok(base.RB >= 24, `RB replacement ${base.RB}`);
+  assert.ok(base.WR >= 24, `WR replacement ${base.WR}`);
+  // every flex slot must land somewhere
+  const flexTotal = base.RB + base.WR + base.TE;
+  assert.equal(flexTotal, 24 + 24 + 12 + 12, `flex slots lost: ${flexTotal}`);
+  // a 3-WR lineup must move WR replacement deeper than a 2-WR one
+  const wide = E.replacementRanks(pool, { ...E.DEFAULT_LINEUP, WR: 3 }, 12);
+  assert.ok(wide.WR > base.WR, `WR ${base.WR} -> ${wide.WR} for a 3-WR lineup`);
+});
+
+test('within a position, value order IS projected-points order', () => {
+  // The whole point of the rework: the panels rank by points, not draft position.
+  const pool = withPts();
+  const ranks = E.replacementRanks(pool, E.DEFAULT_LINEUP, 12);
+  for (const pos of ['QB', 'RB', 'WR', 'TE']) {
+    const list = pool.filter((p) => p.pos === pos);
+    const byValue = [...list].sort((a, b) => E.playerValue(b) - E.playerValue(a));
+    const byPoints = [...list].sort((a, b) => b.pts - a.pts);
+    // Only above replacement. Below it every value clamps to 0 and ties on
+    // purpose -- that is asserted separately by the clamp test.
+    const n = Math.min(ranks[pos], list.length);
+    assert.ok(n > 5, `${pos} replacement at ${n} leaves nothing to check`);
+    for (let i = 0; i < n; i++) {
+      assert.equal(byValue[i].name, byPoints[i].name, `${pos} #${i + 1}`);
+    }
+  }
+});
+
+test('value is comparable ACROSS positions, which raw points are not', () => {
+  const pool = withPts();
+  const best = (pos) => pool.filter((p) => p.pos === pos).sort((a, b) => b.pts - a.pts)[0];
+  const qb = best('QB'), rb = best('RB');
+  // the top QB outscores the top RB on raw points...
+  assert.ok(qb.pts > rb.pts, `QB ${qb.pts} vs RB ${rb.pts}`);
+  // ...but is worth less, because QB replacement level is so much higher
+  assert.ok(E.playerValue(qb) < E.playerValue(rb),
+    `${qb.name} (${E.playerValue(qb).toFixed(0)}) should be worth less than ${rb.name} (${E.playerValue(rb).toFixed(0)})`);
+});
+
+test('sub-replacement value clamps at zero and never inverts K/DEF suppression', () => {
+  // score = need x (value + waitLoss). A negative value multiplied by the 0.005
+  // K/DEF need would rank a kicker ABOVE a real player, so the clamp is load-bearing.
+  const pool = withPts();
+  const deep = pool.filter((p) => Number.isFinite(p.vor) && p.vor < 0);
+  assert.ok(deep.length, 'fixture should contain sub-replacement players');
+  for (const p of deep) assert.equal(E.playerValue(p), 0, `${p.name} valued below zero`);
+
+  const st = {
+    players: pool, drafted: new Set(), draftedOrder: [], roster: {},
+    lineup: E.DEFAULT_LINEUP, leagueSize: 12, slot: 1, rounds: 16,
+  };
+  const ev = E.evaluate(st);
+  const firstKDef = ev.scored.findIndex((r) => ['K', 'DEF'].includes(r.player.pos));
+  assert.ok(firstKDef > 40, `a K/DEF surfaced at rank ${firstKDef + 1} on a full board`);
+});
+
+test('playerValue falls back to the ADP curve when no projections are loaded', () => {
+  // Fixtures and any pre-projections board must still work.
+  const bare = { adp: 12, pos: 'RB' };
+  assert.equal(E.playerValue(bare), E.adpValue(12));
+  const pool = DATA.formats.ppr.players.map((p) => ({ ...p }));   // no pts
+  E.computeValues(pool, E.DEFAULT_LINEUP, 12);
+  assert.ok(pool.every((p) => p.vor === undefined), 'computeValues must no-op without points');
+});
+
 test('every player on the board scores finite', () => {
   const state = scenario('RB');
   const ev = E.evaluate(state);

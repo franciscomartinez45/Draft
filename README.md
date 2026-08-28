@@ -11,17 +11,17 @@ Live at **https://franciscomartinez45.github.io/Draft/**
 ## The morning of the draft
 
 ```sh
-node fetch-adp.mjs && node build.mjs      # refresh ADP, rebuild index.html
-git commit -am "refresh ADP" && git push  # publish it
+node fetch-adp.mjs && node fetch-projections.mjs && node build.mjs
+git commit -am "refresh ADP" && git push
 ```
 
 ADP changes daily. Skipping the refresh gives you confidently wrong advice, and the failure is
 invisible — the app looks like it is working. GitHub Pages redeploys within a minute of the
 push; hard-refresh on your phone if you still see the old board.
 
-**This now runs itself.** `.github/workflows/refresh-adp.yml` does the same two commands every
-day at 11:00 UTC (07:00 ET) and pushes the result, so the live board is current without anyone
-opening a laptop. It fetches, rebuilds, runs the tests, and only then commits — a failed fetch
+**This now runs itself.** `.github/workflows/refresh-adp.yml` does the same commands every
+day at **6:00 am Pacific** (13:00 UTC) and pushes the result, so the live board is current
+without anyone opening a laptop. It fetches, rebuilds, runs the tests, and only then commits — a failed fetch
 publishes nothing rather than publishing a half-written board. You can also trigger it by hand
 from the **Actions** tab, and the commands above still work if you want to refresh right now.
 
@@ -69,8 +69,9 @@ recorded picks.
 | File | Role |
 |---|---|
 | `fetch-adp.mjs` | Pulls 4 scoring formats from Fantasy Football Calculator → `adp-data.json` |
+| `fetch-projections.mjs` | Pulls RotoWire season projections via Sleeper, joins to FFC ids → `projections.json` |
 | `engine.mjs` | Pure logic: name matching, tiers, availability, scoring. No DOM. |
-| `engine.test.mjs` | `node --test engine.test.mjs` — 26 tests |
+| `engine.test.mjs` | `node --test engine.test.mjs` — 31 tests |
 | `simulate.mjs` | `node simulate.mjs 1000` — adversarial mock drafts |
 | `smoke.mjs` | `node smoke.mjs` — runs the real page code against a DOM shim, 15 checks |
 | `.github/workflows/refresh-adp.yml` | Daily ADP refresh, test, and publish |
@@ -89,8 +90,40 @@ be inlined as base64.
 
 ## How the recommendation works
 
-Ranking a player is mostly one question: *will he still be there at my next pick?*
+Two different questions, two different data sources. Conflating them is the mistake the whole
+design exists to avoid:
 
+| Question | Source |
+|---|---|
+| **How good is he?** | RotoWire season projections → points over replacement |
+| **Will he still be there at my next pick?** | Fantasy Football Calculator ADP |
+
+The projections are **RotoWire's**, served through Sleeper's API — Sleeper is the pipe, not the
+source. The endpoint is undocumented (Sleeper's published API covers players, leagues and drafts,
+not projections), so it is free and needs no key but carries no stability promise. If it changes
+shape, `fetch-projections.mjs` fails loudly rather than publishing a broken board.
+
+`projections.json` records **when RotoWire last refreshed**, not just when we pulled — otherwise a
+provider that quietly stopped updating still looks like a fresh fetch. Over 7 days it warns and
+publishes anyway (week-old projections on draft morning beat no board); over 45 days it refuses.
+
+### How good is he
+
+Raw projected PPR points cannot be compared across positions: 300 points from a quarterback is
+not worth 300 from a running back, because the 12th-best QB is nearly as good as the 5th while
+the 30th RB is a cliff. So a player is worth his points *over replacement level* — replacement
+being the last man who would start somewhere in a 12-team league. Flex slots are handed to
+whichever position has the best body left, rather than split by a fixed ratio, because a fixed
+split misplaces replacement exactly when one position is unusually deep.
+
+Inside a position this changes nothing — replacement is a constant there, so the top-5 WR panel
+is simply the five available receivers with the most projected points. It is what makes the
+comparison *between* positions honest, and it is why an elite tight end outranks a receiver who
+scores more raw points.
+
+### Will he still be there
+
+This is where ADP earns its place — it is the only signal that knows what the room will do.
 The naive answer uses each player's ADP distribution. That fails exactly when advice matters
 most, because it never updates as the draft deviates from consensus. Worse, a purely
 rank-based fix doesn't help either — removing 12 players shifts everyone's overall rank
@@ -110,9 +143,6 @@ same number of players gone:
 | this model | **0.24 survive** | 5.77 survive |
 | ADP-only baseline | 5.31 | 5.31 *(blind to the run)* |
 
-Inside a position panel the ordering reduces to value plus the cost of waiting, so a player
-about to be sniped ranks above a marginally better one who will still be there next turn.
-
 Other behavior worth knowing:
 
 - **Tiers** come from relative ADP gaps, so a 3-pick gap at ADP 10 breaks a tier but the same
@@ -125,7 +155,12 @@ Other behavior worth knowing:
 
 ## Known limits
 
-- ADP is consensus opinion, not projection. It knows nothing about a Week 2 injury.
+- Projections are one source's opinion — RotoWire's, not a consensus the way ADP is. FantasyPros'
+  aggregate or ESPN would give different numbers, and a different top five.
+- They assume a full healthy season for everyone —
+  a player with an injury history projects the same 17 games as an iron man. Injury risk is
+  entirely absent from the model.
+- ADP is consensus opinion about *when people draft*, nothing more.
 - The board carries 218–267 players depending on format. A 12-team × 16-round draft needs 192
   picks, which the PPR board covers; deeper leagues can run the last rounds dry, and the app
   warns you when that will happen.

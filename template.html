@@ -558,6 +558,7 @@ function load(){
 let POOL = [], INDEX = null, BY_ID = new Map();
 function rebuild(){
   POOL = computeTiers(ADP.formats[S.format].players.map(p => ({ ...p })));
+  computeValues(POOL, S.lineup, LEAGUE_SIZE);   // replacement level moves with the lineup
   INDEX = buildIndex(POOL);
   BY_ID = new Map(POOL.map(p => [p.id, p]));
 }
@@ -661,6 +662,7 @@ function renderSheet(){
     <div class="sh-sub">
       <span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span>
       <span>${esc(p.team || '')}</span>
+      ${p.pts != null ? `<span class="mono"><b>${Math.round(p.pts)} proj pts</b></span>` : ''}
       <span class="mono">ADP ${p.adp.toFixed(1)}</span>
       ${p.bye ? `<span>bye ${p.bye}</span>` : ''}
     </div>
@@ -748,7 +750,7 @@ function render(){
           return `<li class="prow u-${u}" data-pick="${p.id}">
             <span class="pr-i">${i+1}</span>
             <span class="pr-n">${esc(p.name)}</span>
-            <span class="pr-m">${esc(p.team||'')} · ADP ${p.adp.toFixed(1)}</span>
+            <span class="pr-m">${esc(p.team||'')}${p.pts != null ? ` · <b>${Math.round(p.pts)} pts</b>` : ''} · ADP ${p.adp.toFixed(1)}</span>
           </li>`;
         }).join('')
       : `<li class="pan-empty">None left.</li>`;
@@ -784,9 +786,9 @@ function render(){
       const mc = a <= URGENCY.NOW ? 'var(--critical)' : a <= URGENCY.SOON ? 'var(--accent)' : 'var(--safe)';
       html += `<li class="row" data-pick="${p.id}">
         <span class="nm">${esc(p.name)}</span>
-        <span class="adp mono">${p.adp.toFixed(1)}</span>
+        <span class="adp mono">${p.pts != null ? Math.round(p.pts) + ' pts' : p.adp.toFixed(1)}</span>
         <span class="mt">
-          <span>${esc(p.team||'')}${p.bye ? ' · bye '+p.bye : ''}</span>
+          <span>${esc(p.team||'')}${p.bye ? ' · bye '+p.bye : ''} · adp ${p.adp.toFixed(1)}</span>
           <span class="meter" style="--v:${a.toFixed(3)};--mc:${mc}" title="${Math.round(a*100)}% likely to last until your next pick"><i></i></span>
         </span>
       </li>`;
