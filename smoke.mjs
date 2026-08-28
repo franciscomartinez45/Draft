@@ -282,4 +282,24 @@ assert.ok($('rosterNote').textContent.startsWith('1 drafted'),
 assert.ok($('teams').innerHTML.includes('Gibbs'), 'slotless legacy pick vanished from the team cards');
 console.log('slotless legacy blob ....... ok');
 
+// ---- 15. RESET wipes everything, not just the picks. Clearing the board but
+//          keeping the slot left the app looking reset while still holding it.
+await boot();
+chooseMySlot(9);
+$('q').value = 'gibbs'; fire('q', 'input'); fire('q', 'keydown', { key: 'Enter' }); confirmPick();
+$('rounds').value = '14'; fire('rounds', 'change');
+assert.equal(saved().log.length, 1, 'setup: pick not recorded');
+assert.equal(saved().slot, 9, 'setup: slot not set');
+assert.equal(saved().rounds, 14, 'setup: rounds not set');
+
+fire('resetBtn', 'click');
+assert.equal(saved().log.length, 0, 'reset left picks behind');
+assert.equal(saved().slot, null, 'reset left the draft slot behind');
+assert.equal(saved().rounds, 16, 'reset left changed settings behind');
+assert.equal(saved().format, 'ppr', 'reset should return to PPR');
+assert.ok(!$('onboard').hidden, 'after a reset the app must ask for a slot again');
+assert.match($('clockTxt').textContent, /pick your slot/i, `clock after reset: ${$('clockTxt').textContent}`);
+assert.equal($('scroller').innerHTML, '', 'scroller should be empty again after reset');
+console.log('reset clears everything .... ok');
+
 console.log('\nall smoke checks passed');

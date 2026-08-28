@@ -16,8 +16,18 @@ git commit -am "refresh ADP" && git push  # publish it
 ```
 
 ADP changes daily. Skipping the refresh gives you confidently wrong advice, and the failure is
-invisible — the app looks like it is working. GitHub Pages redeploys about a minute after the
+invisible — the app looks like it is working. GitHub Pages redeploys within a minute of the
 push; hard-refresh on your phone if you still see the old board.
+
+**This now runs itself.** `.github/workflows/refresh-adp.yml` does the same two commands every
+day at 11:00 UTC (07:00 ET) and pushes the result, so the live board is current without anyone
+opening a laptop. It fetches, rebuilds, runs the tests, and only then commits — a failed fetch
+publishes nothing rather than publishing a half-written board. You can also trigger it by hand
+from the **Actions** tab, and the commands above still work if you want to refresh right now.
+
+> **Before next August:** GitHub disables scheduled workflows after 60 days of repository
+> inactivity. This repo goes quiet in the off-season, so check the Actions tab and confirm
+> **Refresh ADP** is still enabled before you rely on it. Pushing any commit re-arms it.
 
 Or open it locally: `open index.html`. It is a standalone HTML
 document: no server, no build step at view time, no platform. Copy it to any device, email it
@@ -62,7 +72,8 @@ recorded picks.
 | `engine.mjs` | Pure logic: name matching, tiers, availability, scoring. No DOM. |
 | `engine.test.mjs` | `node --test engine.test.mjs` — 26 tests |
 | `simulate.mjs` | `node simulate.mjs 1000` — adversarial mock drafts |
-| `smoke.mjs` | `node smoke.mjs` — runs the real page code against a DOM shim |
+| `smoke.mjs` | `node smoke.mjs` — runs the real page code against a DOM shim, 15 checks |
+| `.github/workflows/refresh-adp.yml` | Daily ADP refresh, test, and publish |
 | `template.html` | Markup, styles, UI glue |
 | `build.mjs` | Inlines engine + data → `index.html` |
 | `index.html` | **The deliverable.** Standalone HTML document, no server needed. |

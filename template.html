@@ -701,6 +701,12 @@ function render(){
     $('clock').classList.remove('live');
     $('clockTxt').textContent = 'Pick your slot';
     $('banners').innerHTML = '';
+    // Blank the panes as well. CSS hides them while there is no slot, so a
+    // leftover board is invisible rather than wrong -- but it means a reset
+    // only LOOKS complete, and stale players linger in the document.
+    for (const id of ['scroller','dots','cols','teams','slots','ticker']) $(id).innerHTML = '';
+    $('rosterNote').textContent = '';
+    $('mySlotLbl').textContent = '';
     return;
   }
 
@@ -1095,8 +1101,18 @@ $('bulk').addEventListener('paste', () => {
   }, 0);
 });
 $('resetBtn').addEventListener('click', () => {
-  if (S.log.length && !confirm(`Clear all ${S.log.length} recorded picks? This cannot be undone.`)) return;
-  S.log = []; save(); render();
+  // A full wipe back to a first-run state: picks, draft slot, scoring, rounds
+  // and lineup. Clearing the picks but silently keeping the slot left the app
+  // looking reset while still holding a setting you meant to be rid of.
+  const hasState = S.log.length || S.slot != null;
+  if (hasState && !confirm(
+      `Start over? This clears ${S.log.length} recorded pick${S.log.length === 1 ? '' : 's'}` +
+      `${S.slot != null ? `, your draft slot (${S.slot})` : ''} and your settings. This cannot be undone.`)) return;
+  S = { ...DEF_SETTINGS, lineup:{ ...DEFAULT_LINEUP }, log:[] };
+  closeSheet(); closeSettings();
+  rebuild(); save(); syncControls(); render();
+  qEl.value = ''; candidates = []; sel = -1; ambiguous = false;
+  showResults();
 });
 
 /* ------------------------------- theme -------------------------------- */

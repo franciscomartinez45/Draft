@@ -1,0 +1,67 @@
+name: Refresh ADP
+
+# ADP moves every day, and a stale board fails INVISIBLY -- the app looks like it
+# is working while handing out confidently wrong advice. This does the morning-of
+# ritual on a schedule so it does not depend on anyone being at a laptop.
+#
+# ---------------------------------------------------------------------------
+# HEADS UP, FUTURE SEASON: GitHub disables scheduled workflows after 60 days of
+# repository inactivity. This repo goes quiet outside draft season, so before
+# next August open the Actions tab and confirm "Refresh ADP" is still enabled.
+# Pushing any commit re-arms it.
+# ---------------------------------------------------------------------------
+
+on:
+  schedule:
+    - cron: '0 11 * * *'    # 11:00 UTC daily = 07:00 ET / 04:00 PT
+  workflow_dispatch:         # and on demand, from the Actions tab
+
+permissions:
+  contents: write            # needed to push the rebuilt index.html back to main
+
+concurrency:
+  group: refresh-adp
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Every step below is deliberately fail-fast. fetch-adp.mjs writes
+      # adp-data.json BEFORE exiting non-zero on a partial failure, so a failed
+      # fetch leaves a half-written file in the workspace. Nothing may be
+      # committed unless the fetch, the build, AND the tests all pass.
+      # Do not add `if: always()` or `continue-on-error` to any of these.
+      - name: Fetch ADP
+        run: node fetch-adp.mjs
+
+      - name: Rebuild index.html
+        run: node build.mjs
+
+      # build.mjs validates the data (4 formats, player floors, CSP, no missing
+      # board column). These catch the other half: a page that renders empty.
+      - name: Test
+        run: |
+          node --test engine.test.mjs
+          node smoke.mjs
+
+      - name: Publish if the board changed
+        run: |
+          # adp-data.json carries a fetchedAt timestamp, so a successful refresh
+          # normally always differs. The guard is for the pathological no-op.
+          if git diff --quiet -- adp-data.json index.html; then
+            echo "Board unchanged - nothing to publish."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add adp-data.json index.html
+          git commit -m "refresh ADP ($(date -u +%Y-%m-%d))"
+          git push
+          echo "Published. GitHub Pages redeploys shortly."
