@@ -88,6 +88,29 @@ test('snake pick numbers', () => {
   assert.equal(E.nextPickAfter(31, E.snakePicks(12, 1, 16)), 48);
 });
 
+test('snakeTeamForPick is the exact inverse of snakePicks', () => {
+  // The slot chooser pre-selects a chip from this. If the two ever disagree the
+  // app attributes a pick to the wrong team and looks perfectly fine doing it.
+  for (const size of [8, 10, 12, 14]) {
+    for (let slot = 1; slot <= size; slot++) {
+      for (const pick of E.snakePicks(size, slot, 16)) {
+        assert.equal(E.snakeTeamForPick(pick, size), slot,
+          `pick ${pick} in a ${size}-team draft should belong to slot ${slot}`);
+      }
+    }
+  }
+  // and every pick of a round is claimed by exactly one slot
+  for (let pick = 1; pick <= 12 * 16; pick++) {
+    const t = E.snakeTeamForPick(pick, 12);
+    assert.ok(t >= 1 && t <= 12, `pick ${pick} mapped to slot ${t}`);
+  }
+  assert.equal(E.snakeTeamForPick(1, 12), 1);
+  assert.equal(E.snakeTeamForPick(12, 12), 12);
+  assert.equal(E.snakeTeamForPick(13, 12), 12);   // snake turns
+  assert.equal(E.snakeTeamForPick(24, 12), 1);
+  assert.equal(E.snakeTeamForPick(25, 12), 1);
+});
+
 // ------------------------------------------------------ availability guards
 
 test('cdfAvailability never returns NaN, even on degenerate input', () => {

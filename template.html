@@ -24,6 +24,7 @@
   --safe:#256B55; --safe-soft:#E4F1EC;
   --qb:#7C51AE; --rb:#1F7F73; --wr:#2F6DB8; --te:#AF4E72; --k:#6B7480; --def:#5F7A38;
   --shadow:0 1px 2px rgba(16,20,25,.06), 0 4px 14px rgba(16,20,25,.05);
+  --scrim:rgba(16,20,25,.42);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -35,6 +36,7 @@
     --safe:#4FB795; --safe-soft:#15241F;
     --qb:#A87BD1; --rb:#3FB3A2; --wr:#5D9BE0; --te:#D9819D; --k:#8B95A3; --def:#93B45F;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.28);
+    --scrim:rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"] {
@@ -46,6 +48,7 @@
   --safe:#4FB795; --safe-soft:#15241F;
   --qb:#A87BD1; --rb:#3FB3A2; --wr:#5D9BE0; --te:#D9819D; --k:#8B95A3; --def:#93B45F;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.28);
+  --scrim:rgba(0,0,0,.6);
 }
 
 *,*::before,*::after{box-sizing:border-box}
@@ -62,61 +65,69 @@ button,input,select,textarea{font:inherit; color:inherit}
   font-family:"Barlow Condensed",sans-serif; font-size:12px; font-weight:600;
   letter-spacing:.12em; text-transform:uppercase; color:var(--ink-faint);
 }
+[hidden]{display:none !important}
 
 /* ---------------------------- command bar ---------------------------- */
 .cmd{
   position:sticky; top:0; z-index:40; background:var(--surface);
   border-bottom:1px solid var(--line); box-shadow:var(--shadow);
 }
-.cmd-in{max-width:1500px; margin:0 auto; padding:10px 16px; display:flex; gap:14px; align-items:center; flex-wrap:wrap}
-.brand{display:flex; align-items:baseline; gap:9px; margin-right:2px}
-.brand b{font-family:"Barlow Condensed",sans-serif; font-size:20px; font-weight:700; letter-spacing:.01em}
-.brand span{font-size:12px; color:var(--ink-faint)}
+.cmd-in{max-width:1200px; margin:0 auto; padding:9px 12px 10px}
+.cmd-row{display:flex; gap:9px; align-items:center; margin-bottom:8px}
+.brand{display:flex; align-items:baseline; gap:7px}
+.brand b{font-family:"Barlow Condensed",sans-serif; font-size:18px; font-weight:700; letter-spacing:.01em; white-space:nowrap}
+.brand span{font-size:11px; color:var(--ink-faint); display:none}
 
 .clock{
-  display:flex; align-items:center; gap:8px; padding:5px 11px; border-radius:999px;
-  border:1px solid var(--line); background:var(--surface-2); white-space:nowrap;
+  display:flex; align-items:center; gap:7px; padding:4px 10px; border-radius:999px;
+  border:1px solid var(--line); background:var(--surface-2); min-width:0;
 }
 .clock.live{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
-.clock b{font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.02em}
-.dot{width:7px; height:7px; border-radius:50%; background:var(--ink-faint)}
+.clock b{
+  font-family:"Barlow Condensed",sans-serif; font-size:13.5px; letter-spacing:.02em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dot{width:7px; height:7px; border-radius:50%; background:var(--ink-faint); flex:none}
 .clock.live .dot{background:var(--accent); animation:pulse 1.8s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.clock.live .dot{animation:none}}
 
-.search{position:relative; flex:1 1 300px; min-width:220px}
-.search input{
-  width:100%; padding:9px 12px; border-radius:8px; border:1px solid var(--line);
-  background:var(--ground); font-size:15px;
-}
-.search input::placeholder{color:var(--ink-faint)}
-.hint{margin-top:5px; font-size:11.5px; color:var(--ink-faint)}
-.hint kbd{
-  font-family:"IBM Plex Mono",monospace; font-size:10.5px; padding:1px 5px;
-  border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; background:var(--surface-2);
-}
-.tools{display:flex; gap:7px; margin-left:auto}
+.tools{display:flex; gap:6px; margin-left:auto}
 .btn{
   padding:7px 12px; border-radius:7px; border:1px solid var(--line);
   background:var(--surface-2); cursor:pointer; font-size:13.5px; font-weight:500;
 }
-.btn:hover{border-color:var(--ink-faint)}
 .btn:disabled{opacity:.4; cursor:not-allowed}
-.btn-key{color:var(--ink-faint); font-size:11px; margin-left:5px}
+.btn-key{color:var(--ink-faint); font-size:11px; margin-left:5px; display:none}
+.icon{min-width:38px; min-height:38px; display:grid; place-items:center; padding:0 9px; font-size:15px}
+
+/* search sits directly above the position scroller, as the primary input */
+.search{position:relative}
+.search input{
+  width:100%; padding:11px 12px; border-radius:9px; border:1px solid var(--line);
+  background:var(--ground);
+  font-size:16px;   /* 16px or iOS Safari zooms the whole page on focus */
+}
+.search input::placeholder{color:var(--ink-faint)}
+.hint{margin-top:5px; font-size:11px; color:var(--ink-faint)}
+.hint kbd{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; padding:1px 5px;
+  border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; background:var(--surface-2);
+}
 
 /* results dropdown */
 .results{
   position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:50;
   background:var(--raise); border:1px solid var(--line); border-radius:10px;
-  box-shadow:var(--shadow); overflow:hidden; max-height:60vh; overflow-y:auto;
+  box-shadow:var(--shadow); overflow:hidden; max-height:56vh; overflow-y:auto;
 }
 .results.ambig{border-color:var(--accent); border-width:2px}
 .ambig-note{
-  padding:8px 12px; background:var(--accent-soft); color:var(--accent);
+  padding:9px 12px; background:var(--accent-soft); color:var(--accent);
   font-size:12.5px; font-weight:600; border-bottom:1px solid var(--line);
 }
 .res{
-  display:flex; align-items:center; gap:10px; width:100%; padding:9px 12px;
+  display:flex; align-items:center; gap:10px; width:100%; padding:11px 12px; min-height:46px;
   border:0; background:none; cursor:pointer; text-align:left; border-bottom:1px solid var(--line-soft);
 }
 .res:last-child{border-bottom:0}
@@ -127,62 +138,102 @@ button,input,select,textarea{font:inherit; color:inherit}
   border:1px solid var(--line); border-radius:4px; flex:none;
 }
 .res-n{font-weight:600; flex:1}
-.res-m{font-size:12px; color:var(--ink-dim)}
+.res-m{font-size:12px; color:var(--ink-dim); white-space:nowrap}
 .empty{padding:12px; color:var(--ink-dim); font-size:13.5px}
 
 /* ------------------------------- layout ------------------------------- */
-.wrap{max-width:1500px; margin:0 auto; padding:18px 16px 60px}
+.wrap{max-width:1200px; margin:0 auto; padding:12px 12px 96px}
 .banner{
-  display:flex; gap:9px; align-items:flex-start; padding:10px 13px; margin-bottom:16px;
+  display:flex; gap:9px; align-items:flex-start; padding:10px 13px; margin-bottom:12px;
   border-radius:9px; border:1px solid var(--line); background:var(--surface);
-  font-size:13.5px; color:var(--ink-dim);
+  font-size:13px; color:var(--ink-dim);
 }
 .banner.warn{border-color:var(--accent); background:var(--accent-soft); color:var(--accent)}
 .banner b{color:inherit}
+.tabpane{display:none}
+.tabpane.on{display:block}
+section{margin-bottom:20px}
+.sec-head{display:flex; align-items:baseline; gap:4px 10px; margin-bottom:9px; flex-wrap:wrap}
+.sec-head h2{font-size:18px; letter-spacing:.01em}
+.sec-head .eyebrow{margin-left:auto; text-align:right}
 
-section{margin-bottom:26px}
-.sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:11px}
-.sec-head h2{font-size:19px; letter-spacing:.01em}
-.sec-head .eyebrow{margin-left:auto}
+/* ---------------------------- onboarding ---------------------------- */
+.onboard{
+  background:var(--surface); border:1px solid var(--accent); border-radius:12px;
+  padding:16px 15px; box-shadow:var(--shadow);
+}
+.onboard h2{font-size:21px; margin-bottom:3px}
+.onboard p{margin:0 0 13px; font-size:13px; color:var(--ink-dim)}
 
-/* ------------------------------ the call ------------------------------ */
-.call{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
-.pick{
-  position:relative; background:var(--surface); border:1px solid var(--line);
-  border-radius:11px; padding:14px 15px 13px 18px; box-shadow:var(--shadow); overflow:hidden;
+/* 1-12 grids: onboarding slot pick and the slot chooser in the sheet */
+.chips{display:grid; grid-template-columns:repeat(6,1fr); gap:7px}
+.chipbtn{
+  position:relative; min-height:46px; border-radius:9px; border:1px solid var(--line);
+  background:var(--surface-2); cursor:pointer; font-family:"Barlow Condensed",sans-serif;
+  font-size:18px; font-weight:700; letter-spacing:.02em;
 }
-.pick::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--ink-faint)}
-.pick.u-now::before{background:var(--critical)}
-.pick.u-soon::before{background:var(--accent)}
-.pick.u-wait::before{background:var(--safe)}
-.pick-top{display:flex; align-items:center; gap:8px; margin-bottom:3px}
-.rank{
-  font-family:"Barlow Condensed",sans-serif; font-size:12px; font-weight:700;
-  color:var(--ink-faint); letter-spacing:.1em;
+.chipbtn.on{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.chipbtn.you::after{
+  content:"YOU"; position:absolute; left:0; right:0; bottom:2px;
+  font-family:Barlow,sans-serif; font-size:8px; font-weight:700; letter-spacing:.09em; opacity:.75;
 }
-.tag{
-  margin-left:auto; font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
-  padding:2px 7px; border-radius:4px;
+
+/* --------------------- the position scroller (top 5) --------------------- */
+/* Breaks out of .wrap's padding so two panels genuinely fit at 390px wide. */
+.scroller{
+  display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory;
+  margin:0 -12px; padding:2px 12px 6px; -webkit-overflow-scrolling:touch;
+  scrollbar-width:none; overscroll-behavior-x:contain;
+  /* without this, snapping aligns panel 1 to the scrollport edge and the
+     left padding above is silently cancelled */
+  scroll-padding-left:12px;
 }
-.tag.u-now{background:var(--critical-soft); color:var(--critical)}
-.tag.u-soon{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent)}
-.tag.u-wait{background:var(--safe-soft); color:var(--safe)}
-.pick h3{font-size:25px; line-height:1.1; letter-spacing:.005em}
-.pick-sub{font-size:12.5px; color:var(--ink-dim); margin:3px 0 9px; display:flex; gap:7px; align-items:center}
-.why{margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:4px}
-.why li{font-size:13px; color:var(--ink-dim); padding-left:13px; position:relative; line-height:1.35}
-.why li::before{content:""; position:absolute; left:2px; top:.55em; width:4px; height:4px; border-radius:50%; background:var(--ink-faint)}
-.pick-act{margin-top:11px; display:flex; gap:7px}
-.pick-act .btn{flex:1; text-align:center}
-.take{background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600}
-.take:hover{filter:brightness(1.08)}
+.scroller::-webkit-scrollbar{display:none}
+.panel{
+  flex:0 0 calc(50% - 6px); scroll-snap-align:start;
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  overflow:hidden; box-shadow:var(--shadow);
+}
+.pan-h{
+  display:flex; align-items:center; gap:6px; padding:8px 10px;
+  border-bottom:1px solid var(--line); background:var(--surface-2);
+}
+.pan-h .n{margin-left:auto; font-size:10.5px; color:var(--ink-faint)}
+.pan-h .run{
+  font-size:9.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--critical); background:var(--critical-soft); padding:1px 5px; border-radius:4px;
+}
+.plist{list-style:none; margin:0; padding:0}
+.prow{
+  position:relative; display:grid; grid-template-columns:15px 1fr; gap:0 7px;
+  padding:7px 9px 7px 12px; min-height:46px; align-content:center;
+  border-bottom:1px solid var(--line-soft); cursor:pointer;
+}
+.prow:last-child{border-bottom:0}
+.prow::before{content:""; position:absolute; inset:0 auto 0 0; width:3px; background:var(--ink-faint)}
+.prow.u-now::before{background:var(--critical)}
+.prow.u-soon::before{background:var(--accent)}
+.prow.u-wait::before{background:var(--safe)}
+.prow .pr-i{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink-faint); padding-top:2px}
+.prow .pr-n{font-weight:600; font-size:13.5px; line-height:1.15; overflow-wrap:anywhere}
+.prow .pr-m{grid-column:2; font-size:10.5px; color:var(--ink-faint); margin-top:1px}
+.pan-empty{padding:14px 10px; font-size:12px; color:var(--ink-faint)}
+.dots{display:flex; gap:6px; justify-content:center; margin-top:10px}
+.dots button{
+  width:26px; height:26px; padding:0; border-radius:6px; border:1px solid var(--line);
+  background:var(--surface-2); cursor:pointer;
+  font-family:"Barlow Condensed",sans-serif; font-size:10px; font-weight:700; letter-spacing:.04em;
+  color:var(--ink-faint);
+}
+.dots button.on{border-color:var(--accent); color:var(--accent); background:var(--accent-soft)}
 
 /* ------------------------------- board ------------------------------- */
-.cols{display:grid; grid-template-columns:repeat(auto-fit,minmax(196px,1fr)); gap:12px; align-items:start}
+.cols{display:grid; grid-template-columns:1fr; gap:12px; align-items:start}
 .col{background:var(--surface); border:1px solid var(--line); border-radius:11px; overflow:hidden}
 .col-h{
   display:flex; align-items:center; gap:7px; padding:9px 11px;
   border-bottom:1px solid var(--line); background:var(--surface-2);
+  position:sticky; top:0; z-index:2;
 }
 .chip{
   font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:12px; letter-spacing:.06em;
@@ -193,11 +244,10 @@ section{margin-bottom:26px}
   font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
   color:var(--critical); background:var(--critical-soft); padding:2px 6px; border-radius:4px;
 }
-.plist{list-style:none; margin:0; padding:0; max-height:min(52vh,460px); overflow-y:auto}
+.blist{list-style:none; margin:0; padding:0; max-height:none}
 .tierline{
   display:flex; align-items:center; gap:8px; padding:6px 11px 5px;
   background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line-soft);
-  position:sticky; top:0;
 }
 .tierline:first-child{border-top:0}
 .tierline .t{font-family:"Barlow Condensed",sans-serif; font-size:11.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-dim)}
@@ -206,19 +256,17 @@ section{margin-bottom:26px}
 .tierline.cliff .t,.tierline.cliff .s{color:var(--critical)}
 .row{
   display:grid; grid-template-columns:1fr auto; gap:2px 8px; align-items:center;
-  padding:6px 11px; border-bottom:1px solid var(--line-soft); cursor:pointer;
+  padding:9px 11px; min-height:46px; border-bottom:1px solid var(--line-soft); cursor:pointer;
 }
 .row:last-child{border-bottom:0}
-.row:hover{background:var(--surface-2)}
-.row .nm{font-weight:500; font-size:13.5px; line-height:1.2}
+.row .nm{font-weight:500; font-size:14px; line-height:1.2}
 .row .adp{font-size:11.5px; color:var(--ink-faint)}
 .row .mt{grid-column:1/-1; display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-faint)}
 .meter{flex:1; height:3px; border-radius:2px; background:var(--line); overflow:hidden; max-width:64px}
 .meter i{display:block; height:100%; width:calc(var(--v)*100%); background:var(--mc)}
 
-/* -------------------------------- rail -------------------------------- */
-.rail{display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
-.card{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:13px 14px}
+/* -------------------------------- cards -------------------------------- */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:13px 14px; margin-bottom:12px}
 .card h3{font-size:15px; margin-bottom:9px; letter-spacing:.02em}
 .slots{display:flex; flex-wrap:wrap; gap:5px}
 .slot{
@@ -227,17 +275,42 @@ section{margin-bottom:26px}
 }
 .slot.filled{border-style:solid; border-color:transparent; background:var(--surface-2); color:var(--ink)}
 .slot b{font-family:"Barlow Condensed",sans-serif; letter-spacing:.05em}
-.ticker{list-style:none; margin:0; padding:0; max-height:190px; overflow-y:auto; font-size:12.5px}
-.ticker li{display:flex; gap:8px; align-items:center; padding:4px 0; border-bottom:1px solid var(--line-soft)}
+
+/* team cards */
+.team{background:var(--surface); border:1px solid var(--line); border-radius:11px; margin-bottom:10px; overflow:hidden}
+.team.me{border-color:var(--accent)}
+.team-h{
+  display:flex; align-items:center; gap:8px; padding:9px 12px;
+  background:var(--surface-2); border-bottom:1px solid var(--line);
+}
+.team.me .team-h{background:var(--accent-soft); color:var(--accent)}
+.team-h .sn{
+  font-family:"Barlow Condensed",sans-serif; font-size:15px; font-weight:700;
+  min-width:22px; height:22px; display:grid; place-items:center;
+  border:1px solid currentColor; border-radius:5px;
+}
+.team-h .nm{font-family:"Barlow Condensed",sans-serif; font-size:15px; font-weight:600; letter-spacing:.02em}
+.team-h .n{margin-left:auto; font-size:11px; color:var(--ink-faint)}
+.team.me .team-h .n{color:inherit; opacity:.8}
+.team ul{list-style:none; margin:0; padding:0}
+.team li{display:flex; gap:8px; align-items:center; padding:6px 12px; font-size:12.5px; border-bottom:1px solid var(--line-soft)}
+.team li:last-child{border-bottom:0}
+.team li .p{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--ink-faint); width:26px; flex:none}
+.team li .rd{margin-left:auto; font-size:10px; color:var(--ink-faint); white-space:nowrap}
+.team-empty{padding:10px 12px; font-size:12px; color:var(--ink-faint)}
+
+.ticker{list-style:none; margin:0; padding:0; max-height:280px; overflow-y:auto; font-size:12.5px}
+.ticker li{display:flex; gap:8px; align-items:center; padding:5px 0; border-bottom:1px solid var(--line-soft)}
 .ticker li:last-child{border-bottom:0}
 .ticker .p{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-faint); width:26px}
 .ticker .who{margin-left:auto; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint)}
 .ticker li.mine .who{color:var(--accent); font-weight:700}
 .pc{font-family:"Barlow Condensed",sans-serif; font-size:10px; font-weight:700; letter-spacing:.05em; color:var(--pc); border:1px solid currentColor; border-radius:3px; padding:0 4px}
+
 .fields{display:grid; grid-template-columns:1fr 1fr; gap:9px}
 .field{display:flex; flex-direction:column; gap:3px}
 .field label{font-size:11px; color:var(--ink-faint); letter-spacing:.04em}
-.field select,.field input{padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--ground)}
+.field select,.field input{padding:9px 8px; border-radius:6px; border:1px solid var(--line); background:var(--ground); font-size:16px}
 .field.wide{grid-column:1/-1}
 textarea{
   width:100%; min-height:64px; padding:8px; border-radius:7px; border:1px solid var(--line);
@@ -245,32 +318,105 @@ textarea{
 }
 .note{font-size:11.5px; color:var(--ink-faint); margin-top:7px}
 .note.bad{color:var(--critical)}
+.acts{display:flex; gap:7px; flex-wrap:wrap}
+.acts .btn{flex:1; min-height:42px; text-align:center}
 
-@media (max-width:900px){
-  .call{grid-template-columns:1fr}
-  .cmd-in{padding:9px 12px; gap:9px}
-  .brand span{display:none}
-  .wrap{padding:14px 12px 50px}
-  .plist{max-height:none}
+/* ------------------------------ bottom tabs ------------------------------ */
+.tabbar{
+  position:fixed; left:0; right:0; bottom:0; z-index:45;
+  display:grid; grid-template-columns:repeat(3,1fr);
+  background:var(--surface); border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -1px 10px rgba(0,0,0,.06);
+}
+.tabbar button{
+  min-height:52px; padding:8px 4px; border:0; background:none; cursor:pointer;
+  font-family:"Barlow Condensed",sans-serif; font-size:13px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint);
+  border-top:2px solid transparent; margin-top:-1px;
+}
+.tabbar button.on{color:var(--accent); border-top-color:var(--accent)}
+
+/* -------------------------------- sheets -------------------------------- */
+.scrim{position:fixed; inset:0; z-index:55; background:var(--scrim)}
+.sheet{
+  position:fixed; left:0; right:0; bottom:0; z-index:60; max-height:88vh; overflow-y:auto;
+  background:var(--raise); border-top:1px solid var(--line); border-radius:16px 16px 0 0;
+  padding:8px 15px calc(18px + env(safe-area-inset-bottom));
+  box-shadow:0 -6px 30px rgba(0,0,0,.22); overscroll-behavior:contain;
+}
+.grab{width:38px; height:4px; border-radius:2px; background:var(--line); margin:0 auto 12px}
+.sh-h{display:flex; align-items:baseline; gap:8px; margin-bottom:2px}
+.sh-h h3{font-size:23px; line-height:1.1}
+.sh-sub{font-size:12.5px; color:var(--ink-dim); display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-bottom:10px}
+.why{margin:0 0 13px; padding:0; list-style:none; display:flex; flex-direction:column; gap:5px}
+.why li{font-size:13px; color:var(--ink-dim); padding-left:13px; position:relative; line-height:1.35}
+.why li::before{content:""; position:absolute; left:2px; top:.55em; width:4px; height:4px; border-radius:50%; background:var(--ink-faint)}
+.tag{
+  font-size:10.5px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  padding:2px 7px; border-radius:4px; white-space:nowrap;
+}
+.tag.u-now{background:var(--critical-soft); color:var(--critical)}
+.tag.u-soon{background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent)}
+.tag.u-wait{background:var(--safe-soft); color:var(--safe)}
+.who-lbl{
+  font-family:"Barlow Condensed",sans-serif; font-size:12px; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint);
+  display:flex; align-items:baseline; gap:7px; margin-bottom:7px;
+}
+.who-lbl .auto{text-transform:none; letter-spacing:0; font-family:Barlow,sans-serif; font-size:11.5px}
+.confirm{
+  width:100%; margin-top:13px; min-height:50px; border-radius:10px; cursor:pointer;
+  background:var(--accent); color:var(--accent-ink); border:1px solid var(--accent);
+  font-family:"Barlow Condensed",sans-serif; font-size:17px; font-weight:700; letter-spacing:.05em;
+}
+.sh-cancel{
+  width:100%; margin-top:8px; min-height:42px; border-radius:9px; cursor:pointer;
+  background:none; border:1px solid var(--line); color:var(--ink-dim); font-size:13.5px;
+}
+
+/* ------------------------------- desktop ------------------------------- */
+@media (min-width:720px){
+  .brand span{display:inline}
+  .btn-key{display:inline}
+  .wrap{padding:18px 16px 96px}
+  .scroller{margin:0 -16px; padding:2px 16px 6px; scroll-padding-left:16px}
+  .panel{flex-basis:calc(33.333% - 8px)}
+  .cols{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .blist{max-height:min(52vh,460px); overflow-y:auto}
+  .col-h{position:static}
+  .teams-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:10px; align-items:start}
+  .team{margin-bottom:0}
+  .sheet{
+    left:50%; right:auto; bottom:auto; top:50%; transform:translate(-50%,-50%);
+    width:min(520px,92vw); border-radius:14px; border:1px solid var(--line);
+  }
+  .grab{display:none}
+}
+@media (min-width:1080px){
+  .panel{flex-basis:calc(16.666% - 10px)}
 }
 </style>
 </head>
 <body>
 <header class="cmd">
   <div class="cmd-in">
-    <div class="brand"><b>WAR ROOM</b><span>2026</span></div>
-    <div class="clock" id="clock"><span class="dot"></span><b id="clockTxt">Pick 1</b></div>
-    <div class="search">
-      <input id="q" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
-             placeholder="Type a player who was just drafted…" aria-label="Mark a player drafted">
-      <div id="res" hidden></div>
-      <div class="hint">
-        <kbd>Enter</kbd> someone else took him · <kbd>Shift</kbd>+<kbd>Enter</kbd> you took him · <kbd>1</kbd>–<kbd>9</kbd> choose
+    <div class="cmd-row">
+      <div class="brand"><b>WAR ROOM</b><span>2026 · PPR</span></div>
+      <div class="clock" id="clock"><span class="dot"></span><b id="clockTxt">Pick 1</b></div>
+      <div class="tools">
+        <button class="btn icon" id="undo" title="Undo the last pick" aria-label="Undo">&#8630;<span class="btn-key">&#8984;Z</span></button>
+        <button class="btn icon" id="gear" title="Settings" aria-label="Settings">&#9881;</button>
+        <button class="btn icon" id="theme" title="Switch between light, dark, and your system setting" aria-label="Colour theme">Auto</button>
       </div>
     </div>
-    <div class="tools">
-      <button class="btn" id="undo">Undo<span class="btn-key">⌘Z</span></button>
-      <button class="btn" id="theme" title="Switch between light, dark, and your system setting" aria-label="Colour theme">Auto</button>
+    <div class="search">
+      <input id="q" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="Search a player to mark him drafted…" aria-label="Search players">
+      <div id="res" hidden></div>
+      <div class="hint">
+        Type any part of a name, then choose which slot took him. <kbd>/</kbd> to jump here.
+      </div>
     </div>
   </div>
 </header>
@@ -278,51 +424,79 @@ textarea{
 <div class="wrap">
   <div id="banners"></div>
 
-  <section>
-    <div class="sec-head"><h2 id="callTitle">Take one of these</h2><span class="eyebrow" id="callSub"></span></div>
-    <div class="call" id="call"></div>
+  <!-- shown only until a draft slot is chosen; the scroller needs a slot to compute against -->
+  <section class="onboard" id="onboard" hidden>
+    <h2>Which pick are you?</h2>
+    <p>Pick your slot in the 12-team snake order. You can change it later in settings.</p>
+    <div class="chips" id="slotGrid"></div>
   </section>
 
-  <section>
-    <div class="sec-head"><h2>The board</h2><span class="eyebrow">available · by position · tier breaks marked</span></div>
-    <div class="cols" id="cols"></div>
-  </section>
+  <div class="tabpane" id="pane-picks">
+    <section>
+      <div class="sec-head">
+        <h2 id="callTitle">Best available</h2>
+        <span class="eyebrow" id="callSub"></span>
+      </div>
+      <div class="scroller" id="scroller"></div>
+      <div class="dots" id="dots"></div>
+    </section>
+  </div>
 
-  <section>
-    <div class="sec-head"><h2>Your team &amp; settings</h2></div>
-    <div class="rail">
+  <div class="tabpane" id="pane-board">
+    <section>
+      <div class="sec-head"><h2>The board</h2><span class="eyebrow">available · tier breaks marked</span></div>
+      <div class="cols" id="cols"></div>
+    </section>
+  </div>
+
+  <div class="tabpane" id="pane-teams">
+    <section>
+      <div class="sec-head"><h2>Your team</h2><span class="eyebrow" id="mySlotLbl"></span></div>
       <div class="card">
-        <h3>Your roster</h3>
         <div class="slots" id="slots"></div>
         <div class="note" id="rosterNote"></div>
       </div>
+      <div class="sec-head"><h2>Every team</h2><span class="eyebrow">12-team snake</span></div>
+      <div class="teams-grid" id="teams"></div>
       <div class="card">
-        <h3>Recent picks</h3>
+        <h3>Pick history</h3>
         <ul class="ticker" id="ticker"></ul>
       </div>
-      <div class="card">
-        <h3>League</h3>
-        <div class="fields">
-          <div class="field"><label for="fmt">Scoring</label><select id="fmt"></select></div>
-          <div class="field"><label for="size">Teams</label><input id="size" type="number" min="4" max="20" step="1"></div>
-          <div class="field"><label for="slot">Your slot</label><input id="slot" type="number" min="1" step="1"></div>
-          <div class="field"><label for="rounds">Rounds</label><input id="rounds" type="number" min="6" max="25" step="1"></div>
-          <div class="field wide"><label for="lineupStr">Starting lineup</label><input id="lineupStr" type="text" spellcheck="false"></div>
-        </div>
-        <div class="note" id="lineupNote">Format: <span class="mono">QB1 RB2 WR2 TE1 FLEX1 K1 DEF1</span>. Add <span class="mono">SUPERFLEX1</span> for 2QB leagues.</div>
-      </div>
-      <div class="card">
-        <h3>Bulk entry &amp; backup</h3>
-        <textarea id="bulk" placeholder="Paste names taken while you were away, one per line or comma-separated…"></textarea>
-        <div class="pick-act" style="margin-top:8px">
-          <button class="btn" id="bulkGo">Mark all drafted</button>
-          <button class="btn" id="exportBtn">Export</button>
-          <button class="btn" id="resetBtn">Reset</button>
-        </div>
-        <div class="note" id="bulkNote"></div>
-      </div>
-    </div>
-  </section>
+    </section>
+  </div>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <button data-tab="picks" id="tab-picks">Picks</button>
+  <button data-tab="board" id="tab-board">Board</button>
+  <button data-tab="teams" id="tab-teams">Teams</button>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+
+<!-- who took him: the only way a pick gets recorded -->
+<div class="sheet" id="sheet" hidden role="dialog" aria-label="Record a pick"></div>
+
+<div class="sheet" id="settings" hidden role="dialog" aria-label="Settings">
+  <div class="grab"></div>
+  <div class="sh-h"><h3>Settings</h3></div>
+  <div class="sh-sub">12-team snake draft. Teams is locked.</div>
+  <div class="fields">
+    <div class="field"><label for="fmt">Scoring</label><select id="fmt"></select></div>
+    <div class="field"><label for="slot">Your slot</label><select id="slot"></select></div>
+    <div class="field"><label for="rounds">Rounds</label><input id="rounds" type="number" min="6" max="25" step="1" inputmode="numeric"></div>
+    <div class="field"><label for="lineupStr">Starting lineup</label><input id="lineupStr" type="text" spellcheck="false"></div>
+  </div>
+  <div class="note" id="lineupNote">Lineup format: <span class="mono">QB1 RB2 WR2 TE1 FLEX1 K1 DEF1</span>. Add <span class="mono">SUPERFLEX1</span> for 2QB leagues.</div>
+  <h3 style="margin-top:16px">Catch up &amp; backup</h3>
+  <textarea id="bulk" placeholder="Paste names taken while you were away, one per line or comma-separated…"></textarea>
+  <div class="acts" style="margin-top:8px">
+    <button class="btn" id="bulkGo">Mark all drafted</button>
+    <button class="btn" id="exportBtn">Export</button>
+    <button class="btn" id="resetBtn">Reset</button>
+  </div>
+  <div class="note" id="bulkNote"></div>
+  <button class="sh-cancel" data-close="1">Done</button>
 </div>
 
 <script type="module">
@@ -331,9 +505,43 @@ const ADP = /*__DATA__*/;
 
 /* ------------------------------- state ------------------------------- */
 const KEY = 'draft-war-room-2026';
-const DEF_SETTINGS = { format:'ppr', leagueSize:12, slot:1, rounds:16, lineup:{...DEFAULT_LINEUP} };
-let S = { ...DEF_SETTINGS, log:[] };   // log: [{id, mine}] -- everything derives from this
+const LEAGUE_SIZE = 12;                 // locked: this is a 12-team league
+const TABS = ['picks', 'board', 'teams'];
+const DEF_SETTINGS = {
+  format:'ppr', leagueSize:LEAGUE_SIZE, slot:null, rounds:16,
+  lineup:{ ...DEFAULT_LINEUP }, tab:'picks',
+};
+// log: [{id, team}]  team = 1..12, or null for "someone took him, slot unknown".
+// `mine` is DERIVED (team === S.slot), never stored -- see isMine().
+let S = { ...DEF_SETTINGS, log:[] };
 
+/**
+ * Old saves stored {id, mine} with no team. Reading one of those without
+ * translating it would leave every entry team-undefined, quietly empty the
+ * roster, and have positionNeed recommend starters already on the bench --
+ * with the app looking perfectly healthy. So every read path goes through here.
+ */
+function migrateLog(v){
+  if (!v || !Array.isArray(v.log)) return null;
+  v.log = v.log.map((e) => {
+    if (!e || typeof e !== 'object') return e;
+    if ('team' in e) return e;
+    // mine:true is unambiguous evidence the pick was yours. A blob with no slot
+    // still must not lose it, so carry the flag forward as a fallback marker.
+    return e.mine
+      ? { id: e.id, team: (v.slot ?? S.slot ?? null), mine: true }
+      : { id: e.id, team: null };
+  });
+  return v;
+}
+function adopt(v){
+  const m = migrateLog(v);
+  if (!m) return false;
+  S = { ...DEF_SETTINGS, ...m, leagueSize:LEAGUE_SIZE, lineup:{ ...DEFAULT_LINEUP, ...(m.lineup||{}) } };
+  if (S.slot != null) S.slot = Math.max(1, Math.min(LEAGUE_SIZE, Number(S.slot) || 1));
+  if (!TABS.includes(S.tab)) S.tab = 'picks';
+  return true;
+}
 function save(){
   try { localStorage.setItem(KEY, JSON.stringify(S)); }
   catch { /* private mode / blocked storage: the app still works, it just won't survive reload */ }
@@ -341,37 +549,50 @@ function save(){
 function load(){
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return;
-    const v = JSON.parse(raw);
-    if (v && Array.isArray(v.log)) S = { ...DEF_SETTINGS, ...v, lineup:{ ...DEFAULT_LINEUP, ...(v.lineup||{}) } };
+    // Rewrite in the current shape straight away: leaving a legacy blob in
+    // storage means re-migrating on every load, and exporting the old shape.
+    if (raw && adopt(JSON.parse(raw))) save();
   } catch { /* corrupt or unreadable -- start clean rather than crash */ }
 }
 
-let POOL = [], INDEX = null;
+let POOL = [], INDEX = null, BY_ID = new Map();
 function rebuild(){
   POOL = computeTiers(ADP.formats[S.format].players.map(p => ({ ...p })));
   INDEX = buildIndex(POOL);
+  BY_ID = new Map(POOL.map(p => [p.id, p]));
 }
 
-const byId = id => POOL.find(p => p.id === id);
+const byId = id => BY_ID.get(id);
+const isMine = e => (S.slot != null && e.team === S.slot) || (e.team == null && !!e.mine);
+
 function derive(){
-  const drafted = new Set(), order = [], roster = {};
+  const drafted = new Set(), order = [], roster = {}, byTeam = new Map(), loose = [];
   for (const e of S.log) {
     const p = byId(e.id);
     drafted.add(e.id);
-    if (p) { order.push(p); if (e.mine) roster[p.pos] = (roster[p.pos]||0) + 1; }
+    // unknown id (format switched under us): still off the board, but it cannot
+    // count toward pick order or a roster we can't identify
+    if (!p) continue;
+    order.push(p);
+    const mine = isMine(e);
+    if (mine) roster[p.pos] = (roster[p.pos]||0) + 1;
+    const entry = { player:p, pick:order.length, mine };
+    if (e.team) {
+      if (!byTeam.has(e.team)) byTeam.set(e.team, []);
+      byTeam.get(e.team).push(entry);
+    } else loose.push(entry);
   }
-  return { drafted, order, roster };
+  return { drafted, order, roster, byTeam, loose };
 }
 const stateFor = d => ({
   players:POOL, drafted:d.drafted, draftedOrder:d.order, roster:d.roster,
-  lineup:S.lineup, leagueSize:S.leagueSize, slot:S.slot, rounds:S.rounds,
+  lineup:S.lineup, leagueSize:LEAGUE_SIZE, slot:S.slot ?? 1, rounds:S.rounds,
 });
 
 /* ------------------------------ actions ------------------------------ */
-function take(id, mine){
+function take(id, team){
   if (S.log.some(e => e.id === id)) return;
-  S.log.push({ id, mine:!!mine });
+  S.log.push({ id, team: team == null ? null : Number(team) });
   save(); render();
 }
 function undo(){ if (S.log.length){ S.log.pop(); save(); render(); } }
@@ -379,28 +600,121 @@ function undo(){ if (S.log.length){ S.log.pop(); save(); render(); } }
 /* ------------------------------ helpers ------------------------------ */
 const BASE_POS_ORDER = ['RB','WR','TE','QB','K','DEF'];
 const posOrder = () => (S.lineup.SUPERFLEX ? ['QB','RB','WR','TE','K','DEF'] : BASE_POS_ORDER);
+// WR and RB lead -- they are the picks that actually get made early, and they
+// are the two panels visible before you scroll.
+const CAROUSEL_ORDER = ['WR','RB','QB','TE','K','DEF'];
+const carouselOrder = () => (S.lineup.SUPERFLEX ? ['QB','WR','RB','TE','K','DEF'] : CAROUSEL_ORDER);
 const posVar = pos => `var(--${pos.toLowerCase()})`;
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = id => document.getElementById(id);
 
 const URGENCY_LABEL = { now:'gone by your turn', soon:'might not last', wait:'you can wait' };
 
+let EV = null;          // last evaluate() result, for the sheet's reasons
+let dotIdx = 0;
+
+/* --------------------------- the pick sheet --------------------------- */
+/* Every recorded pick goes through here. There is no shift-click path: on a
+   phone shiftKey is always false, so a modifier can never be the only way to
+   say "this one is mine". */
+let sheetId = null, sheetSlot = null;
+
+function openSheet(id){
+  if (!byId(id) || S.slot == null) return;
+  sheetId = id;
+  sheetSlot = EV ? snakeTeamForPick(EV.currentPick, LEAGUE_SIZE) : 1;
+  renderSheet();
+}
+function closeSheet(){
+  sheetId = null;
+  $('sheet').hidden = true;
+  if (!$('settings').hidden) return;
+  $('scrim').hidden = true;
+}
+function confirmSheet(){
+  if (!sheetId) return;
+  const id = sheetId;
+  sheetId = null;
+  $('sheet').hidden = true;
+  $('scrim').hidden = true;
+  take(id, sheetSlot);
+  qEl.value = ''; candidates = []; sel = -1; ambiguous = false;
+  showResults();
+}
+function renderSheet(){
+  const p = byId(sheetId);
+  if (!p) return;
+  const row = EV && EV.scored.find(r => r.player.id === sheetId);
+  const u = row ? urgencyBand(row.pAvail, EV.gap) : 'wait';
+  const reasons = row ? explain(row, EV) : [];
+  const auto = EV ? snakeTeamForPick(EV.currentPick, LEAGUE_SIZE) : null;
+  const chips = Array.from({ length: LEAGUE_SIZE }, (_, i) => {
+    const n = i + 1;
+    const cls = ['chipbtn'];
+    if (n === sheetSlot) cls.push('on');
+    if (n === S.slot) cls.push('you');
+    return `<button class="${cls.join(' ')}" data-slot="${n}" aria-pressed="${n === sheetSlot}">${n}</button>`;
+  }).join('');
+
+  $('sheet').innerHTML = `<div class="grab"></div>
+    <div class="sh-h"><h3>${esc(p.name)}</h3><span class="tag u-${u}">${URGENCY_LABEL[u]}</span></div>
+    <div class="sh-sub">
+      <span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span>
+      <span>${esc(p.team || '')}</span>
+      <span class="mono">ADP ${p.adp.toFixed(1)}</span>
+      ${p.bye ? `<span>bye ${p.bye}</span>` : ''}
+    </div>
+    ${reasons.length ? `<ul class="why">${reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>` : ''}
+    <div class="who-lbl">Who took him?
+      ${auto ? `<span class="auto">pick ${EV.currentPick} is slot ${auto}</span>` : ''}
+    </div>
+    <div class="chips">${chips}</div>
+    <button class="confirm" id="sheetOk">${sheetSlot === S.slot ? 'I drafted him' : `Slot ${sheetSlot} drafted him`}</button>
+    <button class="sh-cancel" data-close="1">Cancel</button>`;
+  $('sheet').hidden = false;
+  $('scrim').hidden = false;
+}
+
 /* ------------------------------- render ------------------------------- */
+function paintDots(){
+  const order = carouselOrder();
+  $('dots').innerHTML = order.map((pos, i) =>
+    `<button data-dot="${i}" class="${i === dotIdx ? 'on' : ''}" aria-label="Scroll to ${pos}">${pos}</button>`).join('');
+}
+
 function render(){
   const d = derive();
-  const st = stateFor(d);
-  const ev = recommend(st, 3);
+  const hasSlot = S.slot != null;
+
+  $('onboard').hidden = hasSlot;
+  renderSlotGrid();
+  for (const t of TABS) {
+    $('pane-' + t).classList.toggle('on', hasSlot && S.tab === t);
+    $('tab-' + t).classList.toggle('on', S.tab === t);
+  }
+  $('undo').disabled = !S.log.length;
+
+  if (!hasSlot) {
+    // No slot means no snake, and snakePicks(12, null, 16) is nonsense -- so the
+    // engine is not run at all until the question above has been answered.
+    EV = null;
+    $('clock').classList.remove('live');
+    $('clockTxt').textContent = 'Pick your slot';
+    $('banners').innerHTML = '';
+    return;
+  }
+
+  const ev = EV = evaluate(stateFor(d));
 
   // ---- clock
-  const clock = document.getElementById('clock');
-  const onClock = ev.onTheClock;
-  clock.classList.toggle('live', onClock);
-  document.getElementById('clockTxt').textContent = onClock
-    ? `You're on the clock — pick ${ev.currentPick}`
-    : `Pick ${ev.currentPick} · you're up at ${ev.nextPick ?? '—'}`;
+  $('clock').classList.toggle('live', ev.onTheClock);
+  $('clockTxt').textContent = ev.onTheClock
+    ? `You're up — pick ${ev.currentPick}`
+    : `Pick ${ev.currentPick} · up at ${ev.nextPick ?? '—'}`;
 
   // ---- banners
   const b = [];
-  const needed = S.leagueSize * S.rounds;
+  const needed = LEAGUE_SIZE * S.rounds;
   if (needed > POOL.length) {
     b.push(`<div class="banner warn"><b>Board runs out.</b> This draft needs ${needed} picks but the ADP board only lists ${POOL.length} players — the last ${needed - POOL.length} picks won't have suggestions.</div>`);
   }
@@ -409,40 +723,42 @@ function render(){
     b.push(`<div class="banner warn"><b>${hotRun[0][0]} run in progress.</b> ${hotRun[0][1]} of the last 10 picks. Players at that position are going faster than their draft position suggests.</div>`);
   }
   if (!S.log.length) {
-    b.push(`<div class="banner">Type the name of every player taken by <b>anyone else</b> and press <b>Enter</b>. When you draft someone, press <b>Shift+Enter</b> instead so it fills a roster slot.</div>`);
+    b.push(`<div class="banner">Tap any player — in the lists below or from search — then choose which of the 12 slots took him. Your own slot fills a roster spot.</div>`);
   }
-  document.getElementById('banners').innerHTML = b.join('');
+  $('banners').innerHTML = b.join('');
 
-  // ---- the call
-  document.getElementById('callTitle').textContent = onClock ? "You're up — take one of these" : 'If your pick came now';
-  document.getElementById('callSub').textContent = ev.gap > 0
+  // ---- the top-5 scroller
+  $('callTitle').textContent = ev.onTheClock ? "You're up — best available" : 'Best available';
+  $('callSub').textContent = ev.gap > 0
     ? `${ev.gap} picks until your turn` : 'last pick of the draft';
 
-  document.getElementById('call').innerHTML = ev.top.map((row, i) => {
-    const p = row.player, u = urgencyBand(row.pAvail, ev.gap);
-    return `<article class="pick u-${u}">
-      <div class="pick-top">
-        <span class="rank">${i === 0 ? 'BEST PICK' : '#' + (i+1)}</span>
-        <span class="tag u-${u}">${URGENCY_LABEL[u]}</span>
+  $('scroller').innerHTML = carouselOrder().map((pos) => {
+    const rows = ev.scored.filter(r => r.player.pos === pos).slice(0, 5);
+    const info = ev.posInfo.get(pos);
+    const run = ev.recentRun[pos] || 0;
+    const body = rows.length
+      ? rows.map((r, i) => {
+          const p = r.player, u = urgencyBand(r.pAvail, ev.gap);
+          return `<li class="prow u-${u}" data-pick="${p.id}">
+            <span class="pr-i">${i+1}</span>
+            <span class="pr-n">${esc(p.name)}</span>
+            <span class="pr-m">${esc(p.team||'')} · ADP ${p.adp.toFixed(1)}</span>
+          </li>`;
+        }).join('')
+      : `<li class="pan-empty">None left.</li>`;
+    return `<div class="panel">
+      <div class="pan-h">
+        <span class="chip" style="--pc:${posVar(pos)}">${pos}</span>
+        ${run >= 4 ? `<span class="run">run ${run}</span>` : ''}
+        <span class="n">${info ? info.count : 0} left</span>
       </div>
-      <h3>${esc(p.name)}</h3>
-      <div class="pick-sub">
-        <span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span>
-        <span>${esc(p.team || '')}</span>
-        <span class="mono">ADP ${p.adp.toFixed(1)}</span>
-        ${p.bye ? `<span>bye ${p.bye}</span>` : ''}
-      </div>
-      <ul class="why">${row.reasons.map(r => `<li>${esc(r)}</li>`).join('')}</ul>
-      <div class="pick-act">
-        <button class="btn take" data-take="${p.id}">I drafted him</button>
-        <button class="btn" data-gone="${p.id}">Someone else did</button>
-      </div>
-    </article>`;
-  }).join('') || `<div class="banner">No players left on the board.</div>`;
+      <ul class="plist">${body}</ul>
+    </div>`;
+  }).join('');
+  paintDots();
 
   // ---- board
-  const scoredBy = new Map(ev.scored.map(r => [r.player.id, r]));
-  document.getElementById('cols').innerHTML = posOrder().map(pos => {
+  $('cols').innerHTML = posOrder().map(pos => {
     const list = ev.available.filter(p => p.pos === pos);
     if (!list.length) return '';
     const run = ev.recentRun[pos] || 0;
@@ -458,10 +774,9 @@ function render(){
           <span class="s">${cliff ? 'empties before your turn' : `${surv.toFixed(1)} of ${mates.length} should last`}</span>
         </li>`;
       }
-      const r = scoredBy.get(p.id);
       const a = ev.avail.get(p.id) ?? 1;
-      const mc = a <= 0.2 ? 'var(--critical)' : a <= 0.55 ? 'var(--accent)' : 'var(--safe)';
-      html += `<li class="row" data-gone="${p.id}" title="Click: someone else drafted him. Shift-click: you drafted him.">
+      const mc = a <= URGENCY.NOW ? 'var(--critical)' : a <= URGENCY.SOON ? 'var(--accent)' : 'var(--safe)';
+      html += `<li class="row" data-pick="${p.id}">
         <span class="nm">${esc(p.name)}</span>
         <span class="adp mono">${p.adp.toFixed(1)}</span>
         <span class="mt">
@@ -476,17 +791,18 @@ function render(){
         ${run >= 4 ? `<span class="run">run ${run}/10</span>` : ''}
         <span class="n">${list.length} left</span>
       </div>
-      <ul class="plist">${html}</ul>
+      <ul class="blist">${html}</ul>
     </div>`;
   }).join('');
 
-  // ---- roster
+  // ---- your roster
+  $('mySlotLbl').textContent = `slot ${S.slot} of ${LEAGUE_SIZE}`;
   const slots = [];
   for (const [pos, n] of Object.entries(S.lineup)) {
     for (let i = 0; i < n; i++) slots.push(pos);
   }
   const counts = { ...d.roster };
-  document.getElementById('slots').innerHTML = slots.map(pos => {
+  $('slots').innerHTML = slots.map(pos => {
     let filled = false;
     if (pos === 'FLEX' || pos === 'SUPERFLEX') {
       const elig = pos === 'FLEX' ? FLEX_POS : ['QB'];
@@ -495,26 +811,81 @@ function render(){
     } else if ((counts[pos]||0) > 0) { counts[pos]--; filled = true; }
     return `<span class="slot${filled ? ' filled' : ''}"><b>${pos}</b></span>`;
   }).join('');
-  const bench = S.log.filter(e => e.mine).length - slots.length;
-  document.getElementById('rosterNote').textContent =
-    `${S.log.filter(e => e.mine).length} drafted${bench > 0 ? ` · ${bench} on the bench` : ''} · ${ev.roundsLeft} of your picks left`;
+  const mineCount = S.log.filter(isMine).length;
+  const bench = mineCount - slots.length;
+  $('rosterNote').textContent =
+    `${mineCount} drafted${bench > 0 ? ` · ${bench} on the bench` : ''} · ${ev.roundsLeft} of your picks left`;
 
-  // ---- ticker
-  document.getElementById('ticker').innerHTML = S.log.slice(-25).reverse().map((e, i) => {
+  // ---- every team
+  const teamCards = [];
+  const order12 = [S.slot, ...Array.from({length:LEAGUE_SIZE}, (_,i) => i+1).filter(n => n !== S.slot)];
+  for (const n of order12) {
+    const picks = d.byTeam.get(n) || [];
+    const me = n === S.slot;
+    teamCards.push(`<div class="team${me ? ' me' : ''}">
+      <div class="team-h">
+        <span class="sn">${n}</span>
+        <span class="nm">${me ? 'You' : 'Slot ' + n}</span>
+        <span class="n">${picks.length} pick${picks.length === 1 ? '' : 's'}</span>
+      </div>
+      ${picks.length ? `<ul>${picks.map(e => `<li>
+        <span class="p">${e.pick}</span>
+        <span class="pc" style="--pc:${posVar(e.player.pos)}">${e.player.pos}</span>
+        <span>${esc(e.player.name)}</span>
+        <span class="rd">R${Math.ceil(e.pick / LEAGUE_SIZE)}</span>
+      </li>`).join('')}</ul>` : `<div class="team-empty">Nothing yet.</div>`}
+    </div>`);
+  }
+  if (d.loose.length) {
+    teamCards.push(`<div class="team">
+      <div class="team-h"><span class="sn">?</span><span class="nm">Unassigned</span>
+        <span class="n">${d.loose.length}</span></div>
+      <ul>${d.loose.map(e => `<li>
+        <span class="p">${e.pick}</span>
+        <span class="pc" style="--pc:${posVar(e.player.pos)}">${e.player.pos}</span>
+        <span>${esc(e.player.name)}</span>
+      </li>`).join('')}</ul>
+    </div>`);
+  }
+  $('teams').innerHTML = teamCards.join('');
+
+  // ---- pick history
+  $('ticker').innerHTML = S.log.slice(-40).reverse().map((e, i) => {
     const p = byId(e.id);
     const n = S.log.length - i;
-    return `<li class="${e.mine ? 'mine' : ''}">
+    const mine = isMine(e);
+    return `<li class="${mine ? 'mine' : ''}">
       <span class="p">${n}</span>
-      ${p ? `<span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span><span>${esc(p.name)}</span>` : `<span>unknown player</span>`}
-      <span class="who">${e.mine ? 'you' : ''}</span>
+      ${p ? `<span class="pc" style="--pc:${posVar(p.pos)}">${p.pos}</span><span>${esc(p.name)}</span>`
+          : `<span>unknown player</span>`}
+      <span class="who">${mine ? 'you' : (e.team ? 'slot ' + e.team : '—')}</span>
     </li>`;
   }).join('') || `<li style="color:var(--ink-faint)">No picks recorded yet.</li>`;
+}
 
-  document.getElementById('undo').disabled = !S.log.length;
+/* --------------------------- slot onboarding --------------------------- */
+function renderSlotGrid(){
+  $('slotGrid').innerHTML = Array.from({ length: LEAGUE_SIZE }, (_, i) => {
+    const n = i + 1;
+    return `<button class="chipbtn${n === S.slot ? ' on' : ''}" data-myslot="${n}">${n}</button>`;
+  }).join('');
+}
+function setSlot(n){
+  const next = Math.max(1, Math.min(LEAGUE_SIZE, Number(n) || 1));
+  if (S.slot != null && next !== S.slot && S.log.length) {
+    // mine is derived from team === slot, so moving your slot silently rewrites
+    // which of the recorded picks count as yours.
+    if (!confirm(`Change your slot from ${S.slot} to ${next}? Picks already recorded against slot ${S.slot} will stop counting as yours.`)) {
+      syncControls();
+      return;
+    }
+  }
+  S.slot = next;
+  save(); syncControls(); render();
 }
 
 /* ------------------------------- search ------------------------------- */
-const qEl = document.getElementById('q'), resEl = document.getElementById('res');
+const qEl = $('q'), resEl = $('res');
 let candidates = [], sel = -1, ambiguous = false;
 
 function livePool(){ const d = derive(); return POOL.filter(p => !d.drafted.has(p.id)); }
@@ -549,16 +920,17 @@ function updateSearch(){
   showResults();
 }
 
-function commit(i, mine){
+/* Resolving a name never records anything on its own -- it opens the sheet,
+   and the slot choice there is what commits. */
+function choose(i){
   const p = candidates[i];
   if (!p) return;
-  take(p.id, mine);
-  qEl.value = ''; candidates = []; sel = -1; ambiguous = false;
-  showResults(); qEl.focus();
+  openSheet(p.id);
 }
 
 qEl.addEventListener('input', updateSearch);
 qEl.addEventListener('keydown', (e) => {
+  if (sheetId) return;                     // sheet is up: the document handler owns the keys
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     e.preventDefault();
     if (!candidates.length) return;
@@ -568,10 +940,10 @@ qEl.addEventListener('keydown', (e) => {
     showResults();
   } else if (/^[1-9]$/.test(e.key) && candidates.length > 1) {
     const i = Number(e.key) - 1;
-    if (i < candidates.length) { e.preventDefault(); commit(i, e.shiftKey); }
+    if (i < candidates.length) { e.preventDefault(); choose(i); }
   } else if (e.key === 'Enter') {
     e.preventDefault();
-    if (sel >= 0) commit(sel, e.shiftKey);
+    if (sel >= 0) choose(sel);
     // ambiguous with nothing selected: do nothing, the list is already up
   } else if (e.key === 'Escape') {
     qEl.value = ''; updateSearch();
@@ -579,25 +951,77 @@ qEl.addEventListener('keydown', (e) => {
 });
 resEl.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-i]');
-  if (btn) commit(Number(btn.dataset.i), e.shiftKey);
+  if (btn) choose(Number(btn.dataset.i));
 });
 
 /* ------------------------------ interactions ------------------------------ */
+function setTab(t){
+  if (!TABS.includes(t)) return;
+  S.tab = t; save(); render();
+}
+function openSettings(){ syncControls(); $('settings').hidden = false; $('scrim').hidden = false; }
+function closeSettings(){ $('settings').hidden = true; if (sheetId) return; $('scrim').hidden = true; }
+
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-take]'), g = e.target.closest('[data-gone]');
-  if (t) take(t.dataset.take, true);
-  else if (g) take(g.dataset.gone, e.shiftKey);
+  const my   = e.target.closest('[data-myslot]');
+  const slot = e.target.closest('[data-slot]');
+  const pick = e.target.closest('[data-pick]');
+  const tab  = e.target.closest('[data-tab]');
+  const dot  = e.target.closest('[data-dot]');
+  const shut = e.target.closest('[data-close]');
+  const ok   = e.target.closest('#sheetOk');
+
+  if (my)        setSlot(my.dataset.myslot);
+  else if (ok)   confirmSheet();
+  else if (slot) { sheetSlot = Number(slot.dataset.slot); renderSheet(); }
+  else if (pick) openSheet(pick.dataset.pick);
+  else if (tab)  setTab(tab.dataset.tab);
+  else if (dot)  scrollToPanel(Number(dot.dataset.dot));
+  else if (shut) { closeSheet(); closeSettings(); }
 });
-document.getElementById('undo').addEventListener('click', undo);
+$('scrim').addEventListener('click', () => { closeSheet(); closeSettings(); });
+$('undo').addEventListener('click', undo);
+$('gear').addEventListener('click', openSettings);
+
 document.addEventListener('keydown', (e) => {
+  if (sheetId) {
+    if (e.key === 'Enter') { e.preventDefault(); confirmSheet(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeSheet(); }
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
   else if (e.key === '/' && document.activeElement !== qEl) { e.preventDefault(); qEl.focus(); }
 });
 
+/* Horizontal paging for the top-5 panels. Every DOM measurement here is
+   optional -- the smoke shim has no layout, so all of it no-ops safely. */
+function panelStep(el){
+  const first = el.children && el.children[0];
+  const pw = (first && first.offsetWidth) || ((el.clientWidth || 0) / 2);
+  return pw + 12;
+}
+function scrollToPanel(i){
+  const el = $('scroller');
+  const step = panelStep(el);
+  if (!step) return;
+  dotIdx = Math.max(0, Math.min(carouselOrder().length - 1, i));
+  el.scrollLeft = dotIdx * step;
+  paintDots();
+}
+$('scroller').addEventListener('scroll', () => {
+  const el = $('scroller');
+  const step = panelStep(el);
+  if (!step) return;
+  const i = Math.max(0, Math.min(carouselOrder().length - 1, Math.round(el.scrollLeft / step)));
+  if (i !== dotIdx) { dotIdx = i; paintDots(); }
+});
+
 /* ------------------------------- settings ------------------------------- */
-const fmtEl = document.getElementById('fmt');
+const fmtEl = $('fmt');
 fmtEl.innerHTML = Object.entries(ADP.formats)
   .map(([k, v]) => `<option value="${k}">${esc(v.label)} · ${v.totalDrafts.toLocaleString()} mocks</option>`).join('');
+$('slot').innerHTML = Array.from({ length: LEAGUE_SIZE }, (_, i) =>
+  `<option value="${i+1}">Pick ${i+1}</option>`).join('');
 
 const lineupToStr = L => Object.entries(L).filter(([,n]) => n > 0).map(([p,n]) => p + n).join(' ');
 function strToLineup(s){
@@ -607,64 +1031,70 @@ function strToLineup(s){
 }
 function syncControls(){
   fmtEl.value = S.format;
-  document.getElementById('size').value = S.leagueSize;
-  document.getElementById('slot').value = S.slot;
-  document.getElementById('slot').max = S.leagueSize;
-  document.getElementById('rounds').value = S.rounds;
-  document.getElementById('lineupStr').value = lineupToStr(S.lineup);
+  $('slot').value = String(S.slot ?? 1);
+  $('rounds').value = S.rounds;
+  $('lineupStr').value = lineupToStr(S.lineup);
 }
 function onSetting(){
   S.format = fmtEl.value;
-  S.leagueSize = Math.max(4, Math.min(20, Number(document.getElementById('size').value) || 12));
-  S.slot = Math.max(1, Math.min(S.leagueSize, Number(document.getElementById('slot').value) || 1));
-  S.rounds = Math.max(6, Math.min(25, Number(document.getElementById('rounds').value) || 16));
-  S.lineup = strToLineup(document.getElementById('lineupStr').value);
+  S.rounds = Math.max(6, Math.min(25, Number($('rounds').value) || 16));
+  S.lineup = strToLineup($('lineupStr').value);
   rebuild(); save(); syncControls(); render();
 }
-for (const id of ['fmt','size','slot','rounds','lineupStr']) {
-  document.getElementById(id).addEventListener('change', onSetting);
+for (const id of ['fmt','rounds','lineupStr']) {
+  $(id).addEventListener('change', onSetting);
 }
+$('slot').addEventListener('change', () => setSlot($('slot').value));
 
 /* --------------------------- bulk / export / reset --------------------------- */
-document.getElementById('bulkGo').addEventListener('click', () => {
-  const names = document.getElementById('bulk').value.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+$('bulkGo').addEventListener('click', () => {
+  const names = $('bulk').value.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
   const unresolved = [], ambig = [];
+  // These are picks that already happened, in order, so the snake tells us who
+  // made each one -- and the note below says so rather than assuming silently.
+  let pick = derive().order.length + 1;
+  const slotsUsed = [];
   for (const n of names) {
     const r = matchName(n, INDEX, { pool: livePool(), limit: 5 });
-    if (r.status === 'one') S.log.push({ id: r.matches[0].id, mine: false });
+    if (r.status === 'one') {
+      const team = snakeTeamForPick(pick, LEAGUE_SIZE);
+      S.log.push({ id: r.matches[0].id, team });
+      slotsUsed.push(team);
+      pick++;
+    }
     else if (r.status === 'many') ambig.push(n);
     else unresolved.push(n);
   }
   save(); render();
-  const note = document.getElementById('bulkNote');
+  const note = $('bulkNote');
   const done = names.length - unresolved.length - ambig.length;
   note.className = 'note' + (unresolved.length || ambig.length ? ' bad' : '');
   note.textContent = `Marked ${done} of ${names.length}.` +
+    (slotsUsed.length ? ` Attributed to slot${slotsUsed.length > 1 ? 's' : ''} ${[...new Set(slotsUsed)].join(', ')} by draft order — fix any that are wrong in the Teams tab.` : '') +
     (ambig.length ? ` Ambiguous (enter these one at a time): ${ambig.join(', ')}.` : '') +
     (unresolved.length ? ` No match: ${unresolved.join(', ')}.` : '');
-  document.getElementById('bulk').value = [...ambig, ...unresolved].join('\n');
+  $('bulk').value = [...ambig, ...unresolved].join('\n');
 });
-document.getElementById('exportBtn').addEventListener('click', () => {
-  document.getElementById('bulk').value = JSON.stringify(S);
-  document.getElementById('bulkNote').className = 'note';
-  document.getElementById('bulkNote').textContent =
+$('exportBtn').addEventListener('click', () => {
+  $('bulk').value = JSON.stringify(S);
+  $('bulkNote').className = 'note';
+  $('bulkNote').textContent =
     'Draft state copied into the box above — save it somewhere. Paste it back and press Export again to restore.';
 });
-document.getElementById('bulk').addEventListener('paste', () => {
+$('bulk').addEventListener('paste', () => {
   setTimeout(() => {
-    const v = document.getElementById('bulk').value.trim();
+    const v = $('bulk').value.trim();
     if (!v.startsWith('{')) return;
     try {
       const parsed = JSON.parse(v);
-      if (!Array.isArray(parsed.log)) return;
-      S = { ...DEF_SETTINGS, ...parsed, lineup:{ ...DEFAULT_LINEUP, ...(parsed.lineup||{}) } };
+      if (!adopt(parsed)) return;      // same migration path as load()
       rebuild(); save(); syncControls(); render();
-      document.getElementById('bulk').value = '';
-      document.getElementById('bulkNote').textContent = `Restored ${S.log.length} picks.`;
+      $('bulk').value = '';
+      $('bulkNote').textContent = `Restored ${S.log.length} picks.`;
     } catch { /* not a backup blob, treat as names */ }
   }, 0);
 });
-document.getElementById('resetBtn').addEventListener('click', () => {
+$('resetBtn').addEventListener('click', () => {
   if (S.log.length && !confirm(`Clear all ${S.log.length} recorded picks? This cannot be undone.`)) return;
   S.log = []; save(); render();
 });
@@ -681,10 +1111,10 @@ function applyTheme(t){
   const root = document.documentElement;
   if (theme === 'auto') root.removeAttribute('data-theme');
   else root.setAttribute('data-theme', theme);
-  document.getElementById('theme').textContent = THEME_LABEL[theme];
+  $('theme').textContent = THEME_LABEL[theme];
   try { localStorage.setItem(THEME_KEY, theme); } catch { /* storage blocked */ }
 }
-document.getElementById('theme').addEventListener('click', () => {
+$('theme').addEventListener('click', () => {
   applyTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]);
 });
 
@@ -697,7 +1127,6 @@ load();
 rebuild();
 syncControls();
 render();
-qEl.focus();
 </script>
 </body>
 </html>

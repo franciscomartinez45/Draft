@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Inlines engine.mjs + adp-data.json into template.html -> draft.html.
+// Inlines engine.mjs + adp-data.json into template.html -> index.html.
 // The result makes ZERO external requests (except Google Fonts), which is both
 // an Artifact CSP requirement and what makes it work offline at the draft table.
 import { readFileSync, writeFileSync, statSync } from 'node:fs';

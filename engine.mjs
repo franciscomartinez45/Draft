@@ -1,5 +1,5 @@
 // Pure draft logic. No DOM, no I/O -- imported by tests/simulator and inlined
-// verbatim into draft.html by build.mjs (which strips the `export ` keywords).
+// verbatim into index.html by build.mjs (which strips the `export ` keywords).
 
 // ---------------------------------------------------------------- constants
 
@@ -192,6 +192,17 @@ export function snakePicks(leagueSize, slot, rounds) {
 
 export function nextPickAfter(currentPick, picks) {
   return picks.find((p) => p >= currentPick) ?? null;
+}
+
+/**
+ * Which slot owns overall pick `pick`. The exact inverse of snakePicks -- it is
+ * what pre-selects a chip in the slot chooser, so a drift between the two would
+ * attribute picks to the wrong team without ever looking broken.
+ */
+export function snakeTeamForPick(pick, leagueSize) {
+  const r = Math.ceil(pick / leagueSize);
+  const i = pick - (r - 1) * leagueSize;
+  return r % 2 === 1 ? i : leagueSize - i + 1;
 }
 
 // ------------------------------------------------------- availability model
